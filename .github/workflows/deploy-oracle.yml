@@ -102,7 +102,8 @@ jobs:
           docker-compose build web sidekiq
 
           # Clean up any old containers to avoid interactive prompts
-          docker-compose down --remove-orphans
+          # Use --timeout to give containers time to shutdown gracefully
+          docker-compose down --remove-orphans --timeout 10
 
           docker-compose up -d postgres redis
           sleep 5
