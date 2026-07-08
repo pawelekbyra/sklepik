@@ -89,6 +89,7 @@ jobs:
             cp .env.example .env
             sed -i "s#^POSTGRES_PASSWORD=.*#POSTGRES_PASSWORD=$(openssl rand -hex 24)#" .env
             sed -i "s#^SECRET_KEY_BASE=.*#SECRET_KEY_BASE=$(openssl rand -hex 64)#" .env
+            sed -i "s#^RAILS_MASTER_KEY=.*#RAILS_MASTER_KEY=$(openssl rand -hex 32)#" .env
           fi
           mkdir -p ssl
           if [ ! -f ssl/cert.pem ]; then
