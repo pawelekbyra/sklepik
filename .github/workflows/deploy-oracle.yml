@@ -113,14 +113,23 @@ jobs:
 
           # Wait for web container to be healthy (not just created)
           echo "Waiting for web container to start..."
+          web_ready=0
           for i in {1..30}; do
             if docker-compose exec -T web puma -v &>/dev/null; then
               echo "Web container ready"
+              web_ready=1
               break
             fi
             echo "Waiting... ($i/30)"
             sleep 2
           done
+
+          if [ $web_ready -eq 0 ]; then
+            echo "❌ Web container failed to start after 60 seconds"
+            echo "Container logs:"
+            docker-compose logs web
+            exit 1
+          fi
 
           # Copy engine migrations into the host app, then migrate
           docker-compose exec -T web bundle exec rake spree:install:migrations
@@ -133,9 +142,13 @@ jobs:
           # Clear cache if needed
           docker-compose exec -T web bundle exec rake cache:clear
 
-          # Health check
+          # Health check via HTTP
           sleep 5
-          curl -f http://localhost:3000/up || exit 1
+          curl -f http://localhost:3000/up || {
+            echo "❌ Health check failed"
+            docker-compose logs web
+            exit 1
+          }
 
           echo "✓ Deployment successful"
           DEPLOY_EOF
