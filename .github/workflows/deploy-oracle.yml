@@ -49,7 +49,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/spree-fork-audits-review-4uj976'
     steps:
       - uses: actions/checkout@v4
 
