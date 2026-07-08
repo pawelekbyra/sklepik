@@ -104,6 +104,8 @@ jobs:
           # Clean up any old containers to avoid interactive prompts
           # Use --timeout to give containers time to shutdown gracefully
           docker-compose down --remove-orphans --timeout 10
+          # Force remove stopped containers to free up names
+          docker-compose rm -f
 
           docker-compose up -d postgres redis
           sleep 5
