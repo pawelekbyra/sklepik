@@ -461,4 +461,6 @@ docker-compose exec web bundle exec sidekiq-cli info
 ---
 
 **Ostatnia aktualizacja:** 2026-07-08  
-**Status:** Draft (awaiting Oracle provisioning & local testing)
+**Status:** Active deployment in progress  
+**Workflow:** GitHub Actions `.github/workflows/deploy-oracle.yml` #23 in progress  
+**Target:** Oracle Cloud Always Free (141.253.103.172)
