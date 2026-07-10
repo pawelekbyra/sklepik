@@ -116,6 +116,15 @@ describe Spree::UserMethods do
   end
 
   describe '.search' do
+    # The file-level `let!(:another_user)` builds a user with a random FFaker
+    # email/name that lands in the search space of every example. When that random
+    # value happens to contain a term these exact-match assertions search for
+    # (e.g. an email like nelle_hills@smith.info matching 'SMITH'), the result set
+    # gains an extra row and the `eq([...])` expectations fail intermittently —
+    # only on the runs where the random value collides. Drop it so the search
+    # space contains exactly the fixtures this block declares.
+    before { another_user.destroy }
+
     let!(:user_1) { create(:user, email: 'john.doe@example.com', first_name: 'John', last_name: 'Doe') }
     let!(:user_2) { create(:user, email: 'jane.doe@example.com', first_name: 'Jane', last_name: 'Gone') }
     let!(:user_3) { create(:user, email: 'mary.moe@example.com', first_name: 'Mary', last_name: 'Moe') }
