@@ -38,12 +38,29 @@ function stripExamples(node) {
   }
 }
 
-const spec = parse(fs.readFileSync(SPEC_PATH, 'utf-8'))
+const rawSpec = fs.readFileSync(SPEC_PATH, 'utf-8').trim()
+if (!rawSpec) {
+  console.log('admin.yaml is empty or not yet generated. Skipping spec bundling.')
+  fs.mkdirSync(path.dirname(OUT_PATH), { recursive: true })
+  fs.writeFileSync(OUT_PATH, JSON.stringify({ info: {}, paths: {}, components: { schemas: {} } }))
+  fs.writeFileSync(PATHS_OUT, JSON.stringify([]))
+  process.exit(0)
+}
+
+const spec = parse(rawSpec)
+if (!spec) {
+  console.log('Failed to parse admin.yaml. Skipping spec bundling.')
+  fs.mkdirSync(path.dirname(OUT_PATH), { recursive: true })
+  fs.writeFileSync(OUT_PATH, JSON.stringify({ info: {}, paths: {}, components: { schemas: {} } }))
+  fs.writeFileSync(PATHS_OUT, JSON.stringify([]))
+  process.exit(0)
+}
+
 stripExamples(spec)
 
 const slim = {
-  info: spec.info,
-  paths: spec.paths,
+  info: spec.info || {},
+  paths: spec.paths || {},
   components: { schemas: spec.components?.schemas ?? {} },
 }
 

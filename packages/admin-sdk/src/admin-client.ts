@@ -204,6 +204,7 @@ import type {
   ResourceTranslations,
   ResourceTranslationsNode,
   Role,
+  ShippingMethod,
   StockItem,
   StockLocation,
   StockTransfer,
@@ -211,11 +212,13 @@ import type {
   StoreCredit,
   StoreCreditCategory,
   TaxCategory,
+  TaxRate,
   TranslatableResource,
   TranslationBatchEntry,
   Variant,
   WebhookDelivery,
   WebhookEndpoint,
+  Zone,
 } from './types'
 
 /**
@@ -936,16 +939,24 @@ export class AdminClient {
       resume: (orderId: string, id: string, options?: RequestOptions): Promise<Fulfillment> =>
         this.request<Fulfillment>('PATCH', `/orders/${orderId}/fulfillments/${id}/resume`, options),
 
+      // Moves `quantity` units of `variant_id` out of this fulfillment into a
+      // new one (optionally at a different `stock_location_id`). Returns
+      // every fulfillment on the order post-split, not just this one — the
+      // caller should refetch/replace its fulfillments list from the response.
       split: (
         orderId: string,
         id: string,
-        params: { quantity: number; line_item_id?: string },
+        params: { variant_id: string; quantity: number; stock_location_id?: string },
         options?: RequestOptions,
-      ): Promise<Fulfillment> =>
-        this.request<Fulfillment>('PATCH', `/orders/${orderId}/fulfillments/${id}/split`, {
-          ...options,
-          body: params,
-        }),
+      ): Promise<{ data: Fulfillment[] }> =>
+        this.request<{ data: Fulfillment[] }>(
+          'PATCH',
+          `/orders/${orderId}/fulfillments/${id}/split`,
+          {
+            ...options,
+            body: params,
+          },
+        ),
     },
 
     payments: {
@@ -2450,6 +2461,114 @@ export class AdminClient {
           options,
         ),
     },
+  }
+
+  // ============================================
+  // Shipping Methods
+  // ============================================
+
+  readonly shippingMethods = {
+    list: (
+      params?: ListParams & Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<PaginatedResponse<ShippingMethod>> =>
+      this.request<PaginatedResponse<ShippingMethod>>('GET', '/shipping_methods', {
+        ...options,
+        params: params ? transformListParams(params) : undefined,
+      }),
+
+    get: (
+      id: string,
+      params?: { expand?: string[] },
+      options?: RequestOptions,
+    ): Promise<ShippingMethod> =>
+      this.request<ShippingMethod>('GET', `/shipping_methods/${id}`, {
+        ...options,
+        params: getParams(params),
+      }),
+
+    create: (params: Record<string, unknown>, options?: RequestOptions): Promise<ShippingMethod> =>
+      this.request<ShippingMethod>('POST', '/shipping_methods', { ...options, body: params }),
+
+    update: (
+      id: string,
+      params: Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<ShippingMethod> =>
+      this.request<ShippingMethod>('PATCH', `/shipping_methods/${id}`, {
+        ...options,
+        body: params,
+      }),
+
+    delete: (id: string, options?: RequestOptions): Promise<void> =>
+      this.request<void>('DELETE', `/shipping_methods/${id}`, options),
+  }
+
+  // ============================================
+  // Tax Rates
+  // ============================================
+
+  readonly taxRates = {
+    list: (
+      params?: ListParams & Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<PaginatedResponse<TaxRate>> =>
+      this.request<PaginatedResponse<TaxRate>>('GET', '/tax_rates', {
+        ...options,
+        params: params ? transformListParams(params) : undefined,
+      }),
+
+    get: (id: string, params?: { expand?: string[] }, options?: RequestOptions): Promise<TaxRate> =>
+      this.request<TaxRate>('GET', `/tax_rates/${id}`, {
+        ...options,
+        params: getParams(params),
+      }),
+
+    create: (params: Record<string, unknown>, options?: RequestOptions): Promise<TaxRate> =>
+      this.request<TaxRate>('POST', '/tax_rates', { ...options, body: params }),
+
+    update: (
+      id: string,
+      params: Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<TaxRate> =>
+      this.request<TaxRate>('PATCH', `/tax_rates/${id}`, { ...options, body: params }),
+
+    delete: (id: string, options?: RequestOptions): Promise<void> =>
+      this.request<void>('DELETE', `/tax_rates/${id}`, options),
+  }
+
+  // ============================================
+  // Zones
+  // ============================================
+
+  readonly zones = {
+    list: (
+      params?: ListParams & Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<PaginatedResponse<Zone>> =>
+      this.request<PaginatedResponse<Zone>>('GET', '/zones', {
+        ...options,
+        params: params ? transformListParams(params) : undefined,
+      }),
+
+    get: (id: string, params?: { expand?: string[] }, options?: RequestOptions): Promise<Zone> =>
+      this.request<Zone>('GET', `/zones/${id}`, {
+        ...options,
+        params: getParams(params),
+      }),
+
+    create: (params: Record<string, unknown>, options?: RequestOptions): Promise<Zone> =>
+      this.request<Zone>('POST', '/zones', { ...options, body: params }),
+
+    update: (
+      id: string,
+      params: Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<Zone> => this.request<Zone>('PATCH', `/zones/${id}`, { ...options, body: params }),
+
+    delete: (id: string, options?: RequestOptions): Promise<void> =>
+      this.request<void>('DELETE', `/zones/${id}`, options),
   }
 
   // ============================================

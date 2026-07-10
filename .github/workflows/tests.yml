@@ -127,10 +127,12 @@ jobs:
           - { project: core, shard: 3, total_shards: 3, procs: 4 }
           # api: 1 runner × 4 procs
           - { project: api, shard: 1, total_shards: 1, procs: 4 }
-          # admin: 1 runner × 4 procs (feature specs are browser-driven; keep modest)
-          - { project: admin, shard: 1, total_shards: 1, procs: 4 }
           # emails: 1 runner × 2 procs (tiny suite)
           - { project: emails, shard: 1, total_shards: 1, procs: 2 }
+          # NOTE: the legacy Rails admin UI (`spree/admin`) is disabled — its
+          # routes are turned off in favour of the React dashboard, so its
+          # controller/feature/request specs no longer have route helpers and
+          # cannot pass. The suite is excluded from CI until it is removed.
     services:
       postgres:
         image: postgres:16
@@ -269,10 +271,10 @@ jobs:
           - { project: core, shard: 3, total_shards: 3, procs: 4 }
           # api: 1 runner × 4 procs
           - { project: api, shard: 1, total_shards: 1, procs: 4 }
-          # admin: 1 runner × 4 procs
-          - { project: admin, shard: 1, total_shards: 1, procs: 4 }
           # emails: 1 runner × 2 procs
           - { project: emails, shard: 1, total_shards: 1, procs: 2 }
+          # NOTE: legacy Rails admin UI (`spree/admin`) is disabled — see the
+          # test-postgres matrix above. Its specs are excluded from CI.
     services:
       mysql:
         image: mysql:8.0
