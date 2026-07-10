@@ -1,3 +1,4 @@
+import type { ShippingMethod } from '@spree/admin-sdk'
 import { adminClient, useResourceKey, useResourceMutation } from '@spree/dashboard-core'
 import { useQuery } from '@tanstack/react-query'
 import i18n from 'i18next'
@@ -5,17 +6,14 @@ import i18n from 'i18next'
 export function useShippingMethods() {
   return useQuery({
     queryKey: useResourceKey('shipping-methods'),
-    queryFn: async () =>
-      adminClient.request('GET', '/shipping_methods', {
-        params: { per_page: 100 },
-      }),
+    queryFn: async () => adminClient.shippingMethods.list({ per_page: 100 }),
   })
 }
 
 export function useShippingMethod(id: string | undefined, enabled = true) {
-  return useQuery({
+  return useQuery<ShippingMethod>({
     queryKey: useResourceKey('shipping-methods', id ?? 'noop'),
-    queryFn: async () => adminClient.request('GET', `/shipping_methods/${id}`),
+    queryFn: async () => adminClient.shippingMethods.get(id!),
     enabled: !!id && enabled,
   })
 }

@@ -95,8 +95,9 @@ function ShippingMethodsPage() {
         tableKey="shipping-methods"
         queryKey="shipping-methods"
         queryFn={(params) =>
-          adminClient.request('GET', '/shipping_methods', {
-            params: { page: params.page, limit: params.limit ?? 25, per_page: params.limit ?? 25 },
+          adminClient.shippingMethods.list({
+            page: params.page,
+            limit: params.limit ?? 25,
           })
         }
         searchParams={search}

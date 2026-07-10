@@ -1,3 +1,4 @@
+import type { Zone } from '@spree/admin-sdk'
 import { adminClient, useResourceKey, useResourceMutation } from '@spree/dashboard-core'
 import { useQuery } from '@tanstack/react-query'
 import i18n from 'i18next'
@@ -5,17 +6,14 @@ import i18n from 'i18next'
 export function useZones() {
   return useQuery({
     queryKey: useResourceKey('zones'),
-    queryFn: async () =>
-      adminClient.request('GET', '/zones', {
-        params: { per_page: 100 },
-      }),
+    queryFn: async () => adminClient.zones.list({ per_page: 100 }),
   })
 }
 
 export function useZone(id: string | undefined, enabled = true) {
-  return useQuery({
+  return useQuery<Zone>({
     queryKey: useResourceKey('zones', id ?? 'noop'),
-    queryFn: async () => adminClient.request('GET', `/zones/${id}`),
+    queryFn: async () => adminClient.zones.get(id!),
     enabled: !!id && enabled,
   })
 }

@@ -1,3 +1,4 @@
+import type { TaxRate } from '@spree/admin-sdk'
 import { adminClient, useResourceKey, useResourceMutation } from '@spree/dashboard-core'
 import { useQuery } from '@tanstack/react-query'
 import i18n from 'i18next'
@@ -5,17 +6,14 @@ import i18n from 'i18next'
 export function useTaxRates() {
   return useQuery({
     queryKey: useResourceKey('tax-rates'),
-    queryFn: async () =>
-      adminClient.request('GET', '/tax_rates', {
-        params: { per_page: 100 },
-      }),
+    queryFn: async () => adminClient.taxRates.list({ per_page: 100 }),
   })
 }
 
 export function useTaxRate(id: string | undefined, enabled = true) {
-  return useQuery({
+  return useQuery<TaxRate>({
     queryKey: useResourceKey('tax-rates', id ?? 'noop'),
-    queryFn: async () => adminClient.request('GET', `/tax_rates/${id}`),
+    queryFn: async () => adminClient.taxRates.get(id!),
     enabled: !!id && enabled,
   })
 }

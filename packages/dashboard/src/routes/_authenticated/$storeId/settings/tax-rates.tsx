@@ -97,8 +97,9 @@ function TaxRatesPage() {
         tableKey="tax-rates"
         queryKey="tax-rates"
         queryFn={(params) =>
-          adminClient.request('GET', '/tax_rates', {
-            params: { page: params.page, limit: params.limit ?? 25, per_page: params.limit ?? 25 },
+          adminClient.taxRates.list({
+            page: params.page,
+            limit: params.limit ?? 25,
           })
         }
         searchParams={search}

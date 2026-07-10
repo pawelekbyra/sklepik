@@ -93,8 +93,9 @@ function ZonesPage() {
         tableKey="zones"
         queryKey="zones"
         queryFn={(params) =>
-          adminClient.request('GET', '/zones', {
-            params: { page: params.page, limit: params.limit ?? 25, per_page: params.limit ?? 25 },
+          adminClient.zones.list({
+            page: params.page,
+            limit: params.limit ?? 25,
           })
         }
         searchParams={search}
