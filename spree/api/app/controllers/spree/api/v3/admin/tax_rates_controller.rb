@@ -16,7 +16,10 @@ module Spree
           end
 
           def permitted_params
-            params.permit(:name, :amount, :tax_category_id, :zone_id, :included_in_price)
+            permitted = params.permit(:name, :amount, :tax_category_id, :zone_id,
+                                       :included_in_price, :calculator_type)
+            permitted[:calculator_type] ||= 'Spree::Calculator::DefaultTax' if action_name == 'create'
+            permitted
           end
         end
       end

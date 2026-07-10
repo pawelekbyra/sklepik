@@ -5,7 +5,7 @@ require 'swagger_helper'
 RSpec.describe 'Admin Tax Rates API', type: :request, swagger_doc: 'api-reference/admin.yaml' do
   include_context 'API v3 Admin'
 
-  let!(:tax_category) { create(:tax_category, name: 'Standard', store: store) }
+  let!(:tax_category) { create(:tax_category, name: 'Standard') }
   let!(:zone) { create(:zone, name: 'EU') }
   let!(:tax_rate) { create(:tax_rate, name: 'VAT', amount: 0.23, tax_category: tax_category, zone: zone) }
   let(:Authorization) { "Bearer #{admin_jwt_token}" }

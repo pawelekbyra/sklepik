@@ -138,7 +138,7 @@ function CreateShippingMethodSheet({
   const { t } = useTranslation()
   const createMutation = useCreateShippingMethod()
   const form = useForm({
-    defaultValues: { name: '', display_on: '1' },
+    defaultValues: { name: '', display_on: 'both' },
   })
 
   async function onSubmit(values: Record<string, unknown>) {
@@ -190,10 +190,13 @@ function CreateShippingMethodSheet({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">
+                        <SelectItem value="both">
+                          {t('admin.shipping_methods.display_on_both', 'Both')}
+                        </SelectItem>
+                        <SelectItem value="front_end">
                           {t('admin.shipping_methods.display_on_frontend', 'Frontend')}
                         </SelectItem>
-                        <SelectItem value="2">
+                        <SelectItem value="back_end">
                           {t('admin.shipping_methods.display_on_backend', 'Backend')}
                         </SelectItem>
                       </SelectContent>
@@ -236,7 +239,7 @@ function EditShippingMethodSheet({
   const { data: method, isLoading } = useShippingMethod(id)
   const updateMutation = useUpdateShippingMethod()
   const form = useForm({
-    defaultValues: { name: '', display_on: '1' },
+    defaultValues: { name: '', display_on: 'both' },
   })
 
   useEffect(() => {

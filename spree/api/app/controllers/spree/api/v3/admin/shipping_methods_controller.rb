@@ -16,7 +16,7 @@ module Spree
           end
 
           def permitted_params
-            params.permit(:name, :display_on, :tax_category_id,
+            params.permit(:name, :display_on, :tax_category_id, :calculator_type,
                          :estimated_transit_business_days_min,
                          :estimated_transit_business_days_max,
                          shipping_category_ids: [], zone_ids: [])

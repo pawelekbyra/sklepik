@@ -5,7 +5,8 @@ require 'swagger_helper'
 RSpec.describe 'Admin Shipping Methods API', type: :request, swagger_doc: 'api-reference/admin.yaml' do
   include_context 'API v3 Admin'
 
-  let!(:shipping_method) { create(:shipping_method, name: 'Standard', store: store) }
+  let!(:shipping_method) { create(:shipping_method, name: 'Standard') }
+  let!(:shipping_category) { Spree::ShippingCategory.first || create(:shipping_category) }
   let(:Authorization) { "Bearer #{admin_jwt_token}" }
 
   path '/api/v3/admin/shipping_methods' do
@@ -49,14 +50,23 @@ RSpec.describe 'Admin Shipping Methods API', type: :request, swagger_doc: 'api-r
         type: :object,
         properties: {
           name: { type: :string, example: 'Express' },
-          display_on: { type: :integer, example: 1 },
+          display_on: { type: :string, example: 'both' },
+          calculator_type: { type: :string, example: 'Spree::Calculator::Shipping::FlatRate' },
+          shipping_category_ids: { type: :array, items: { type: :string } },
         },
         required: %w[name]
       }
 
       response '201', 'shipping method created' do
         let(:'x-spree-api-key') { secret_api_key.plaintext_token }
-        let(:body) { { name: 'Express' } }
+        let(:body) do
+          {
+            name: 'Express',
+            display_on: 'both',
+            calculator_type: 'Spree::Calculator::Shipping::FlatRate',
+            shipping_category_ids: [shipping_category.prefixed_id],
+          }
+        end
 
         schema '$ref' => '#/components/schemas/ShippingMethod'
 
@@ -120,7 +130,7 @@ RSpec.describe 'Admin Shipping Methods API', type: :request, swagger_doc: 'api-r
         type: :object,
         properties: {
           name: { type: :string },
-          display_on: { type: :integer },
+          display_on: { type: :string },
         },
       }
 
