@@ -49,7 +49,7 @@ const taxRatesSearchSchema = resourceSearchSchema.extend({
   new: z.coerce.boolean().optional(),
 })
 
-export const Route = createFileRoute('/_authenticated/$storeId/settings/tax-rates' as any)({
+export const Route = createFileRoute('/_authenticated/$storeId/settings/tax-rates')({
   validateSearch: taxRatesSearchSchema,
   component: TaxRatesPage,
 })
