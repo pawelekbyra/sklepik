@@ -52,9 +52,6 @@ export function useDeleteZone() {
 export function useCountries() {
   return useQuery({
     queryKey: useResourceKey('countries'),
-    queryFn: async () =>
-      adminClient.request('GET', '/countries', {
-        params: { per_page: 500 },
-      }),
+    queryFn: async () => adminClient.countries.list({ per_page: 500 }),
   })
 }

@@ -1,3 +1,4 @@
+import type { TaxCategory } from '@spree/admin-sdk'
 import {
   adminClient,
   Can,
@@ -96,12 +97,7 @@ function TaxRatesPage() {
       <ResourceTable
         tableKey="tax-rates"
         queryKey="tax-rates"
-        queryFn={(params) =>
-          adminClient.taxRates.list({
-            page: params.page,
-            limit: params.limit ?? 25,
-          })
-        }
+        queryFn={(params) => adminClient.taxRates.list(params)}
         searchParams={search}
         rowActions={(taxRate) => (
           <RowActions
@@ -143,7 +139,7 @@ function CreateTaxRateSheet({
   const { t } = useTranslation()
   const createMutation = useCreateTaxRate()
   const { data: categoriesResponse } = useTaxCategories()
-  const categories = categoriesResponse?.data ?? []
+  const categories: TaxCategory[] = categoriesResponse?.data ?? []
   const form = useForm({
     defaultValues: { name: '', amount: '0', tax_category_id: '', included_in_price: false },
   })
@@ -283,7 +279,7 @@ function EditTaxRateSheet({
   const { data: taxRate, isLoading } = useTaxRate(id)
   const updateMutation = useUpdateTaxRate()
   const { data: categoriesResponse } = useTaxCategories()
-  const categories = categoriesResponse?.data ?? []
+  const categories: TaxCategory[] = categoriesResponse?.data ?? []
   const form = useForm({
     defaultValues: { name: '', amount: '0', tax_category_id: '', included_in_price: false },
   })

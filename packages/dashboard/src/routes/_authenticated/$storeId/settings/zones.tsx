@@ -31,13 +31,7 @@ import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod/v4'
-import {
-  useCountries,
-  useCreateZone,
-  useDeleteZone,
-  useUpdateZone,
-  useZone,
-} from '@/hooks/use-zones'
+import { useCreateZone, useDeleteZone, useUpdateZone, useZone } from '@/hooks/use-zones'
 
 const zonesSearchSchema = resourceSearchSchema.extend({
   edit: z.string().optional(),
@@ -92,12 +86,7 @@ function ZonesPage() {
       <ResourceTable
         tableKey="zones"
         queryKey="zones"
-        queryFn={(params) =>
-          adminClient.zones.list({
-            page: params.page,
-            limit: params.limit ?? 25,
-          })
-        }
+        queryFn={(params) => adminClient.zones.list(params)}
         searchParams={search}
         rowActions={(zone) => (
           <RowActions
@@ -138,8 +127,6 @@ function CreateZoneSheet({
 }) {
   const { t } = useTranslation()
   const createMutation = useCreateZone()
-  const { data: countriesResponse } = useCountries()
-  const _countries = countriesResponse?.data ?? []
   const form = useForm({
     defaultValues: { name: '', description: '', default_tax: false },
   })
@@ -240,8 +227,6 @@ function EditZoneSheet({
   const { t } = useTranslation()
   const { data: zone, isLoading } = useZone(id)
   const updateMutation = useUpdateZone()
-  const { data: countriesResponse } = useCountries()
-  const _countries = countriesResponse?.data ?? []
   const form = useForm({
     defaultValues: { name: '', description: '', default_tax: false },
   })
@@ -250,7 +235,7 @@ function EditZoneSheet({
     if (zone) {
       form.reset({
         name: zone.name,
-        description: zone.description,
+        description: zone.description ?? '',
         default_tax: zone.default_tax,
       })
     }

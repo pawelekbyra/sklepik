@@ -1,4 +1,4 @@
-import type { TaxRate } from '@spree/admin-sdk'
+import type { PaginatedResponse, TaxCategory, TaxRate } from '@spree/admin-sdk'
 import { adminClient, useResourceKey, useResourceMutation } from '@spree/dashboard-core'
 import { useQuery } from '@tanstack/react-query'
 import i18n from 'i18next'
@@ -50,21 +50,8 @@ export function useDeleteTaxRate() {
 }
 
 export function useTaxCategories() {
-  return useQuery({
+  return useQuery<PaginatedResponse<TaxCategory>>({
     queryKey: useResourceKey('tax-categories'),
-    queryFn: async () =>
-      adminClient.request('GET', '/tax_categories', {
-        params: { per_page: 100 },
-      }),
-  })
-}
-
-export function useZones() {
-  return useQuery({
-    queryKey: useResourceKey('zones'),
-    queryFn: async () =>
-      adminClient.request('GET', '/zones', {
-        params: { per_page: 100 },
-      }),
+    queryFn: async () => adminClient.taxCategories.list({ per_page: 100 }),
   })
 }

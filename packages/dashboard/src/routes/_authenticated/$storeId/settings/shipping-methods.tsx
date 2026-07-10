@@ -94,12 +94,7 @@ function ShippingMethodsPage() {
       <ResourceTable
         tableKey="shipping-methods"
         queryKey="shipping-methods"
-        queryFn={(params) =>
-          adminClient.shippingMethods.list({
-            page: params.page,
-            limit: params.limit ?? 25,
-          })
-        }
+        queryFn={(params) => adminClient.shippingMethods.list(params)}
         searchParams={search}
         rowActions={(method) => (
           <RowActions
