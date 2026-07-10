@@ -3,6 +3,7 @@ import {
   Can,
   mapSpreeErrorsToForm,
   ResourceTable,
+  resourceSearchSchema,
   Subject,
   usePermissions,
 } from '@spree/dashboard-core'
@@ -42,15 +43,9 @@ import {
   useUpdateTaxRate,
 } from '@/hooks/use-tax-rates'
 
-const taxRatesSearchSchema = z.object({
+const taxRatesSearchSchema = resourceSearchSchema.extend({
   edit: z.string().optional(),
   new: z.coerce.boolean().optional(),
-  q: z.string().optional(),
-  page: z.coerce.number().optional(),
-  limit: z.coerce.number().optional(),
-  filters: z.array(z.record(z.string())).optional(),
-  sort: z.string().optional(),
-  dir: z.enum(['asc', 'desc']).optional(),
 })
 
 export const Route = createFileRoute('/_authenticated/$storeId/settings/tax-rates')({

@@ -3,6 +3,7 @@ import {
   Can,
   mapSpreeErrorsToForm,
   ResourceTable,
+  resourceSearchSchema,
   Subject,
   usePermissions,
 } from '@spree/dashboard-core'
@@ -40,15 +41,9 @@ import {
   useUpdateShippingMethod,
 } from '@/hooks/use-shipping-methods'
 
-const shippingMethodsSearchSchema = z.object({
+const shippingMethodsSearchSchema = resourceSearchSchema.extend({
   edit: z.string().optional(),
   new: z.coerce.boolean().optional(),
-  q: z.string().optional(),
-  page: z.coerce.number().optional(),
-  limit: z.coerce.number().optional(),
-  filters: z.array(z.record(z.string())).optional(),
-  sort: z.string().optional(),
-  dir: z.enum(['asc', 'desc']).optional(),
 })
 
 export const Route = createFileRoute('/_authenticated/$storeId/settings/shipping-methods')({
