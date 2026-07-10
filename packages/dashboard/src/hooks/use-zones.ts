@@ -44,8 +44,7 @@ export function useUpdateZone() {
 
 export function useDeleteZone() {
   return useResourceMutation({
-    mutationFn: async ({ id }: { id: string }) =>
-      adminClient.request('DELETE', `/zones/${id}`),
+    mutationFn: async ({ id }: { id: string }) => adminClient.request('DELETE', `/zones/${id}`),
     invalidate: [['zones']],
     successMessage: i18n.t('admin.zones.messages.deleted'),
     errorMessage: i18n.t('admin.errors.failed_to_delete'),

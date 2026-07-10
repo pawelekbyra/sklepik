@@ -187,10 +187,11 @@ export function ResourceTranslationsDialog({
       // common flat-field-error shape, but this endpoint nests one level
       // deeper (`{ translations: { "<index>": [message] } }`) — cast to the
       // actual runtime shape rather than fight the shared type.
-      const translationsDetail = err instanceof SpreeError
-        ? (err.details as unknown as { translations?: Record<string, string[]> } | undefined)
-            ?.translations
-        : undefined
+      const translationsDetail =
+        err instanceof SpreeError
+          ? (err.details as unknown as { translations?: Record<string, string[]> } | undefined)
+              ?.translations
+          : undefined
       if (translationsDetail) {
         const nextRowErrors = new Map<string, string>()
         for (const [indexStr, messages] of Object.entries(translationsDetail)) {

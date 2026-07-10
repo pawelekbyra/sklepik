@@ -44,8 +44,7 @@ export function useUpdateTaxRate() {
 
 export function useDeleteTaxRate() {
   return useResourceMutation({
-    mutationFn: async ({ id }: { id: string }) =>
-      adminClient.request('DELETE', `/tax_rates/${id}`),
+    mutationFn: async ({ id }: { id: string }) => adminClient.request('DELETE', `/tax_rates/${id}`),
     invalidate: [['tax-rates']],
     successMessage: i18n.t('admin.tax_rates.messages.deleted'),
     errorMessage: i18n.t('admin.errors.failed_to_delete'),

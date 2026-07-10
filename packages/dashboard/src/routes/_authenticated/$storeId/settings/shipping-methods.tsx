@@ -1,4 +1,11 @@
-import { adminClient, Can, mapSpreeErrorsToForm, ResourceTable, Subject, usePermissions } from '@spree/dashboard-core'
+import {
+  adminClient,
+  Can,
+  mapSpreeErrorsToForm,
+  ResourceTable,
+  Subject,
+  usePermissions,
+} from '@spree/dashboard-core'
 import {
   Button,
   Field,
@@ -14,14 +21,12 @@ import {
   SelectValue,
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
   useConfirm,
   useRowClickBridge,
 } from '@spree/dashboard-ui'
-import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { PlusIcon } from 'lucide-react'
 import { useEffect } from 'react'
@@ -32,7 +37,6 @@ import {
   useCreateShippingMethod,
   useDeleteShippingMethod,
   useShippingMethod,
-  useShippingMethods,
   useUpdateShippingMethod,
 } from '@/hooks/use-shipping-methods'
 
@@ -42,6 +46,9 @@ const shippingMethodsSearchSchema = z.object({
   q: z.string().optional(),
   page: z.coerce.number().optional(),
   limit: z.coerce.number().optional(),
+  filters: z.array(z.record(z.string())).optional(),
+  sort: z.string().optional(),
+  dir: z.enum(['asc', 'desc']).optional(),
 })
 
 export const Route = createFileRoute('/_authenticated/$storeId/settings/shipping-methods')({
@@ -53,7 +60,6 @@ function ShippingMethodsPage() {
   const { t } = useTranslation()
   const search = Route.useSearch() as z.infer<typeof shippingMethodsSearchSchema>
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const confirm = useConfirm()
   const deleteMutation = useDeleteShippingMethod()
   const { permissions } = usePermissions()
@@ -85,7 +91,7 @@ function ShippingMethodsPage() {
       confirmLabel: t('admin.actions.delete'),
     })
     if (!ok) return
-    await deleteMutation.mutateAsync(method.id).catch(() => undefined)
+    await deleteMutation.mutateAsync({ id: method.id }).catch(() => undefined)
   }
 
   return (
@@ -93,7 +99,11 @@ function ShippingMethodsPage() {
       <ResourceTable
         tableKey="shipping-methods"
         queryKey="shipping-methods"
-        queryFn={(params) => adminClient.request('GET', '/shipping_methods', { params: { ...params, per_page: 100 } })}
+        queryFn={(params) =>
+          adminClient.request('GET', '/shipping_methods', {
+            params: { page: params.page, limit: params.limit ?? 25, per_page: params.limit ?? 25 },
+          })
+        }
         searchParams={search}
         rowActions={(method) => (
           <RowActions
@@ -120,7 +130,9 @@ function ShippingMethodsPage() {
       />
 
       {isCreating && <CreateShippingMethodSheet open onOpenChange={(o) => !o && closeSheet()} />}
-      {editId && <EditShippingMethodSheet id={editId} open onOpenChange={(o) => !o && closeSheet()} />}
+      {editId && (
+        <EditShippingMethodSheet id={editId} open onOpenChange={(o) => !o && closeSheet()} />
+      )}
     </>
   )
 }
@@ -175,7 +187,9 @@ function CreateShippingMethodSheet({
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="display_on">{t('admin.shipping_methods.display_on', 'Display On')}</FieldLabel>
+                <FieldLabel htmlFor="display_on">
+                  {t('admin.shipping_methods.display_on', 'Display On')}
+                </FieldLabel>
                 <Controller
                   name="display_on"
                   control={form.control}
@@ -185,8 +199,12 @@ function CreateShippingMethodSheet({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">{t('admin.shipping_methods.display_on_frontend', 'Frontend')}</SelectItem>
-                        <SelectItem value="2">{t('admin.shipping_methods.display_on_backend', 'Backend')}</SelectItem>
+                        <SelectItem value="1">
+                          {t('admin.shipping_methods.display_on_frontend', 'Frontend')}
+                        </SelectItem>
+                        <SelectItem value="2">
+                          {t('admin.shipping_methods.display_on_backend', 'Backend')}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   )}
@@ -253,7 +271,9 @@ function EditShippingMethodSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>{method?.name ?? t('admin.shipping_methods.edit', 'Edit Shipping Method')}</SheetTitle>
+          <SheetTitle>
+            {method?.name ?? t('admin.shipping_methods.edit', 'Edit Shipping Method')}
+          </SheetTitle>
         </SheetHeader>
         {isLoading ? (
           <div className="p-4 text-sm text-muted-foreground">{t('admin.common.loading')}</div>
@@ -273,7 +293,9 @@ function EditShippingMethodSheet({
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="display_on">{t('admin.shipping_methods.display_on', 'Display On')}</FieldLabel>
+                  <FieldLabel htmlFor="display_on">
+                    {t('admin.shipping_methods.display_on', 'Display On')}
+                  </FieldLabel>
                   <Controller
                     name="display_on"
                     control={form.control}
@@ -283,8 +305,12 @@ function EditShippingMethodSheet({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="1">{t('admin.shipping_methods.display_on_frontend', 'Frontend')}</SelectItem>
-                          <SelectItem value="2">{t('admin.shipping_methods.display_on_backend', 'Backend')}</SelectItem>
+                          <SelectItem value="1">
+                            {t('admin.shipping_methods.display_on_frontend', 'Frontend')}
+                          </SelectItem>
+                          <SelectItem value="2">
+                            {t('admin.shipping_methods.display_on_backend', 'Backend')}
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     )}

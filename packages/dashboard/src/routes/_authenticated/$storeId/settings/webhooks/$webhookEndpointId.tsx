@@ -38,7 +38,13 @@ import {
   useRowClickBridge,
 } from '@spree/dashboard-ui'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { AlertTriangleIcon, PencilIcon, PlayIcon, RotateCcwIcon, RefreshCcwIcon } from 'lucide-react'
+import {
+  AlertTriangleIcon,
+  PencilIcon,
+  PlayIcon,
+  RefreshCcwIcon,
+  RotateCcwIcon,
+} from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
 import { type UseFormReturn, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -196,11 +202,7 @@ function WebhookEndpointDetailBody({ endpoint }: { endpoint: WebhookEndpoint }) 
         setRotatedSecret(result.secret_key)
       }
     } catch (err) {
-      toast.error(
-        err instanceof Error
-          ? err.message
-          : t('admin.errors.failed_to_update'),
-      )
+      toast.error(err instanceof Error ? err.message : t('admin.errors.failed_to_update'))
     }
   }
 
@@ -809,7 +811,9 @@ function RotatedSecretSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>{t('admin.pages.settings.webhooks.rotate_secret.title', 'New Secret Key')}</SheetTitle>
+          <SheetTitle>
+            {t('admin.pages.settings.webhooks.rotate_secret.title', 'New Secret Key')}
+          </SheetTitle>
           <SheetDescription>
             {t(
               'admin.pages.settings.webhooks.rotate_secret.description',
@@ -840,12 +844,7 @@ function RotatedSecretSheet({
               'Copy secret key',
             )}
           />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-          >
+          <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
             {t('admin.actions.close')}
           </Button>
         </SheetFooter>

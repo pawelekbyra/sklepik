@@ -14,6 +14,7 @@ const { data: fulfillments } = await client.orders.fulfillments.split(
     quantity: 1,
   },
 )
+
 // endregion:example
 
 export { fulfillments }

@@ -1,4 +1,11 @@
-import { adminClient, Can, mapSpreeErrorsToForm, ResourceTable, Subject, usePermissions } from '@spree/dashboard-core'
+import {
+  adminClient,
+  Can,
+  mapSpreeErrorsToForm,
+  ResourceTable,
+  Subject,
+  usePermissions,
+} from '@spree/dashboard-core'
 import {
   Button,
   Checkbox,
@@ -21,7 +28,6 @@ import {
   useConfirm,
   useRowClickBridge,
 } from '@spree/dashboard-ui'
-import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { PlusIcon } from 'lucide-react'
 import { useEffect } from 'react'
@@ -31,11 +37,9 @@ import { z } from 'zod/v4'
 import {
   useCreateTaxRate,
   useDeleteTaxRate,
-  useTaxRate,
-  useTaxRates,
-  useUpdateTaxRate,
   useTaxCategories,
-  useZones,
+  useTaxRate,
+  useUpdateTaxRate,
 } from '@/hooks/use-tax-rates'
 
 const taxRatesSearchSchema = z.object({
@@ -44,6 +48,9 @@ const taxRatesSearchSchema = z.object({
   q: z.string().optional(),
   page: z.coerce.number().optional(),
   limit: z.coerce.number().optional(),
+  filters: z.array(z.record(z.string())).optional(),
+  sort: z.string().optional(),
+  dir: z.enum(['asc', 'desc']).optional(),
 })
 
 export const Route = createFileRoute('/_authenticated/$storeId/settings/tax-rates')({
@@ -55,7 +62,6 @@ function TaxRatesPage() {
   const { t } = useTranslation()
   const search = Route.useSearch() as z.infer<typeof taxRatesSearchSchema>
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const confirm = useConfirm()
   const deleteMutation = useDeleteTaxRate()
   const { permissions } = usePermissions()
@@ -87,7 +93,7 @@ function TaxRatesPage() {
       confirmLabel: t('admin.actions.delete'),
     })
     if (!ok) return
-    await deleteMutation.mutateAsync(taxRate.id).catch(() => undefined)
+    await deleteMutation.mutateAsync({ id: taxRate.id }).catch(() => undefined)
   }
 
   return (
@@ -95,7 +101,11 @@ function TaxRatesPage() {
       <ResourceTable
         tableKey="tax-rates"
         queryKey="tax-rates"
-        queryFn={(params) => adminClient.request('GET', '/tax_rates', { params: { ...params, per_page: 100 } })}
+        queryFn={(params) =>
+          adminClient.request('GET', '/tax_rates', {
+            params: { page: params.page, limit: params.limit ?? 25, per_page: params.limit ?? 25 },
+          })
+        }
         searchParams={search}
         rowActions={(taxRate) => (
           <RowActions
@@ -182,20 +192,33 @@ function CreateTaxRateSheet({
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="amount">{t('admin.tax_rates.amount', 'Amount (%)')}</FieldLabel>
-                <Input id="amount" type="number" step="0.01" {...form.register('amount', { required: true })} />
+                <FieldLabel htmlFor="amount">
+                  {t('admin.tax_rates.amount', 'Amount (%)')}
+                </FieldLabel>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  {...form.register('amount', { required: true })}
+                />
                 <FieldError errors={[form.formState.errors.amount]} />
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="tax_category_id">{t('admin.tax_rates.tax_category', 'Tax Category')}</FieldLabel>
+                <FieldLabel htmlFor="tax_category_id">
+                  {t('admin.tax_rates.tax_category', 'Tax Category')}
+                </FieldLabel>
                 <Controller
                   name="tax_category_id"
                   control={form.control}
                   rules={{ required: true }}
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger id="tax_category_id" className="w-full" aria-invalid={!!form.formState.errors.tax_category_id}>
+                      <SelectTrigger
+                        id="tax_category_id"
+                        className="w-full"
+                        aria-invalid={!!form.formState.errors.tax_category_id}
+                      >
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -217,7 +240,11 @@ function CreateTaxRateSheet({
                     name="included_in_price"
                     control={form.control}
                     render={({ field }) => (
-                      <Checkbox id="included_in_price" checked={!!field.value} onCheckedChange={field.onChange} />
+                      <Checkbox
+                        id="included_in_price"
+                        checked={!!field.value}
+                        onCheckedChange={field.onChange}
+                      />
                     )}
                   />
                   <FieldLabel htmlFor="included_in_price" className="cursor-pointer mb-0">
@@ -314,20 +341,33 @@ function EditTaxRateSheet({
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="amount">{t('admin.tax_rates.amount', 'Amount (%)')}</FieldLabel>
-                  <Input id="amount" type="number" step="0.01" {...form.register('amount', { required: true })} />
+                  <FieldLabel htmlFor="amount">
+                    {t('admin.tax_rates.amount', 'Amount (%)')}
+                  </FieldLabel>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    {...form.register('amount', { required: true })}
+                  />
                   <FieldError errors={[form.formState.errors.amount]} />
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="tax_category_id">{t('admin.tax_rates.tax_category', 'Tax Category')}</FieldLabel>
+                  <FieldLabel htmlFor="tax_category_id">
+                    {t('admin.tax_rates.tax_category', 'Tax Category')}
+                  </FieldLabel>
                   <Controller
                     name="tax_category_id"
                     control={form.control}
                     rules={{ required: true }}
                     render={({ field }) => (
                       <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger id="tax_category_id" className="w-full" aria-invalid={!!form.formState.errors.tax_category_id}>
+                        <SelectTrigger
+                          id="tax_category_id"
+                          className="w-full"
+                          aria-invalid={!!form.formState.errors.tax_category_id}
+                        >
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -349,7 +389,11 @@ function EditTaxRateSheet({
                       name="included_in_price"
                       control={form.control}
                       render={({ field }) => (
-                        <Checkbox id="included_in_price" checked={!!field.value} onCheckedChange={field.onChange} />
+                        <Checkbox
+                          id="included_in_price"
+                          checked={!!field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       )}
                     />
                     <FieldLabel htmlFor="included_in_price" className="cursor-pointer mb-0">

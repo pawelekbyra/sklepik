@@ -1,4 +1,11 @@
-import { adminClient, Can, mapSpreeErrorsToForm, ResourceTable, Subject, usePermissions } from '@spree/dashboard-core'
+import {
+  adminClient,
+  Can,
+  mapSpreeErrorsToForm,
+  ResourceTable,
+  Subject,
+  usePermissions,
+} from '@spree/dashboard-core'
 import {
   Button,
   Checkbox,
@@ -17,7 +24,6 @@ import {
   useConfirm,
   useRowClickBridge,
 } from '@spree/dashboard-ui'
-import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { PlusIcon } from 'lucide-react'
 import { useEffect } from 'react'
@@ -25,12 +31,11 @@ import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod/v4'
 import {
+  useCountries,
   useCreateZone,
   useDeleteZone,
-  useZone,
-  useZones,
   useUpdateZone,
-  useCountries,
+  useZone,
 } from '@/hooks/use-zones'
 
 const zonesSearchSchema = z.object({
@@ -39,6 +44,9 @@ const zonesSearchSchema = z.object({
   q: z.string().optional(),
   page: z.coerce.number().optional(),
   limit: z.coerce.number().optional(),
+  filters: z.array(z.record(z.string())).optional(),
+  sort: z.string().optional(),
+  dir: z.enum(['asc', 'desc']).optional(),
 })
 
 export const Route = createFileRoute('/_authenticated/$storeId/settings/zones')({
@@ -50,7 +58,6 @@ function ZonesPage() {
   const { t } = useTranslation()
   const search = Route.useSearch() as z.infer<typeof zonesSearchSchema>
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const confirm = useConfirm()
   const deleteMutation = useDeleteZone()
   const { permissions } = usePermissions()
@@ -82,7 +89,7 @@ function ZonesPage() {
       confirmLabel: t('admin.actions.delete'),
     })
     if (!ok) return
-    await deleteMutation.mutateAsync(zone.id).catch(() => undefined)
+    await deleteMutation.mutateAsync({ id: zone.id }).catch(() => undefined)
   }
 
   return (
@@ -90,7 +97,11 @@ function ZonesPage() {
       <ResourceTable
         tableKey="zones"
         queryKey="zones"
-        queryFn={(params) => adminClient.request('GET', '/zones', { params: { ...params, per_page: 100 } })}
+        queryFn={(params) =>
+          adminClient.request('GET', '/zones', {
+            params: { page: params.page, limit: params.limit ?? 25, per_page: params.limit ?? 25 },
+          })
+        }
         searchParams={search}
         rowActions={(zone) => (
           <RowActions
@@ -132,7 +143,7 @@ function CreateZoneSheet({
   const { t } = useTranslation()
   const createMutation = useCreateZone()
   const { data: countriesResponse } = useCountries()
-  const countries = countriesResponse?.data ?? []
+  const _countries = countriesResponse?.data ?? []
   const form = useForm({
     defaultValues: { name: '', description: '', default_tax: false },
   })
@@ -174,7 +185,9 @@ function CreateZoneSheet({
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="description">{t('admin.zones.description', 'Description')}</FieldLabel>
+                <FieldLabel htmlFor="description">
+                  {t('admin.zones.description', 'Description')}
+                </FieldLabel>
                 <Textarea id="description" {...form.register('description')} />
                 <FieldError errors={[form.formState.errors.description]} />
               </Field>
@@ -185,7 +198,11 @@ function CreateZoneSheet({
                     name="default_tax"
                     control={form.control}
                     render={({ field }) => (
-                      <Checkbox id="default_tax" checked={!!field.value} onCheckedChange={field.onChange} />
+                      <Checkbox
+                        id="default_tax"
+                        checked={!!field.value}
+                        onCheckedChange={field.onChange}
+                      />
                     )}
                   />
                   <FieldLabel htmlFor="default_tax" className="cursor-pointer mb-0">
@@ -228,7 +245,7 @@ function EditZoneSheet({
   const { data: zone, isLoading } = useZone(id)
   const updateMutation = useUpdateZone()
   const { data: countriesResponse } = useCountries()
-  const countries = countriesResponse?.data ?? []
+  const _countries = countriesResponse?.data ?? []
   const form = useForm({
     defaultValues: { name: '', description: '', default_tax: false },
   })
@@ -280,7 +297,9 @@ function EditZoneSheet({
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="description">{t('admin.zones.description', 'Description')}</FieldLabel>
+                  <FieldLabel htmlFor="description">
+                    {t('admin.zones.description', 'Description')}
+                  </FieldLabel>
                   <Textarea id="description" {...form.register('description')} />
                   <FieldError errors={[form.formState.errors.description]} />
                 </Field>
@@ -291,7 +310,11 @@ function EditZoneSheet({
                       name="default_tax"
                       control={form.control}
                       render={({ field }) => (
-                        <Checkbox id="default_tax" checked={!!field.value} onCheckedChange={field.onChange} />
+                        <Checkbox
+                          id="default_tax"
+                          checked={!!field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       )}
                     />
                     <FieldLabel htmlFor="default_tax" className="cursor-pointer mb-0">
