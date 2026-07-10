@@ -38,7 +38,7 @@ const zonesSearchSchema = resourceSearchSchema.extend({
   new: z.coerce.boolean().optional(),
 })
 
-export const Route = createFileRoute('/_authenticated/$storeId/settings/zones')({
+export const Route = createFileRoute('/_authenticated/$storeId/settings/zones' as any)({
   validateSearch: zonesSearchSchema,
   component: ZonesPage,
 })
