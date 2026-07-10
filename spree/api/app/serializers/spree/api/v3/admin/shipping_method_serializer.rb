@@ -7,9 +7,7 @@ module Spree
                    display_on: :integer,
                    tax_category_id: [:string, nullable: true],
                    estimated_transit_business_days_min: [:integer, nullable: true],
-                   estimated_transit_business_days_max: [:integer, nullable: true],
-                   shipping_category_ids: [:array, { items: :string }],
-                   zone_ids: [:array, { items: :string }]
+                   estimated_transit_business_days_max: [:integer, nullable: true]
 
           attributes :name, :display_on, :tax_category_id,
                      :estimated_transit_business_days_min,

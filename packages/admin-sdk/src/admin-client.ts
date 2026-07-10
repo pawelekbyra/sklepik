@@ -204,6 +204,7 @@ import type {
   ResourceTranslations,
   ResourceTranslationsNode,
   Role,
+  ShippingMethod,
   StockItem,
   StockLocation,
   StockTransfer,
@@ -211,11 +212,13 @@ import type {
   StoreCredit,
   StoreCreditCategory,
   TaxCategory,
+  TaxRate,
   TranslatableResource,
   TranslationBatchEntry,
   Variant,
   WebhookDelivery,
   WebhookEndpoint,
+  Zone,
 } from './types'
 
 /**
@@ -2458,6 +2461,114 @@ export class AdminClient {
           options,
         ),
     },
+  }
+
+  // ============================================
+  // Shipping Methods
+  // ============================================
+
+  readonly shippingMethods = {
+    list: (
+      params?: ListParams & Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<PaginatedResponse<ShippingMethod>> =>
+      this.request<PaginatedResponse<ShippingMethod>>('GET', '/shipping_methods', {
+        ...options,
+        params: params ? transformListParams(params) : undefined,
+      }),
+
+    get: (
+      id: string,
+      params?: { expand?: string[] },
+      options?: RequestOptions,
+    ): Promise<ShippingMethod> =>
+      this.request<ShippingMethod>('GET', `/shipping_methods/${id}`, {
+        ...options,
+        params: getParams(params),
+      }),
+
+    create: (params: Record<string, unknown>, options?: RequestOptions): Promise<ShippingMethod> =>
+      this.request<ShippingMethod>('POST', '/shipping_methods', { ...options, body: params }),
+
+    update: (
+      id: string,
+      params: Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<ShippingMethod> =>
+      this.request<ShippingMethod>('PATCH', `/shipping_methods/${id}`, {
+        ...options,
+        body: params,
+      }),
+
+    delete: (id: string, options?: RequestOptions): Promise<void> =>
+      this.request<void>('DELETE', `/shipping_methods/${id}`, options),
+  }
+
+  // ============================================
+  // Tax Rates
+  // ============================================
+
+  readonly taxRates = {
+    list: (
+      params?: ListParams & Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<PaginatedResponse<TaxRate>> =>
+      this.request<PaginatedResponse<TaxRate>>('GET', '/tax_rates', {
+        ...options,
+        params: params ? transformListParams(params) : undefined,
+      }),
+
+    get: (id: string, params?: { expand?: string[] }, options?: RequestOptions): Promise<TaxRate> =>
+      this.request<TaxRate>('GET', `/tax_rates/${id}`, {
+        ...options,
+        params: getParams(params),
+      }),
+
+    create: (params: Record<string, unknown>, options?: RequestOptions): Promise<TaxRate> =>
+      this.request<TaxRate>('POST', '/tax_rates', { ...options, body: params }),
+
+    update: (
+      id: string,
+      params: Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<TaxRate> =>
+      this.request<TaxRate>('PATCH', `/tax_rates/${id}`, { ...options, body: params }),
+
+    delete: (id: string, options?: RequestOptions): Promise<void> =>
+      this.request<void>('DELETE', `/tax_rates/${id}`, options),
+  }
+
+  // ============================================
+  // Zones
+  // ============================================
+
+  readonly zones = {
+    list: (
+      params?: ListParams & Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<PaginatedResponse<Zone>> =>
+      this.request<PaginatedResponse<Zone>>('GET', '/zones', {
+        ...options,
+        params: params ? transformListParams(params) : undefined,
+      }),
+
+    get: (id: string, params?: { expand?: string[] }, options?: RequestOptions): Promise<Zone> =>
+      this.request<Zone>('GET', `/zones/${id}`, {
+        ...options,
+        params: getParams(params),
+      }),
+
+    create: (params: Record<string, unknown>, options?: RequestOptions): Promise<Zone> =>
+      this.request<Zone>('POST', '/zones', { ...options, body: params }),
+
+    update: (
+      id: string,
+      params: Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<Zone> => this.request<Zone>('PATCH', `/zones/${id}`, { ...options, body: params }),
+
+    delete: (id: string, options?: RequestOptions): Promise<void> =>
+      this.request<void>('DELETE', `/zones/${id}`, options),
   }
 
   // ============================================
