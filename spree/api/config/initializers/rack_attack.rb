@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'rack/attack'
+
 Rack::Attack.cache.store = ActiveSupport::Cache::MemoryStore.new
 
 # Store API: login throttle (5 attempts per IP per hour)
