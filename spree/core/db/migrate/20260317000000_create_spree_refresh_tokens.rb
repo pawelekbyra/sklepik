@@ -1,6 +1,6 @@
 class CreateSpreeRefreshTokens < ActiveRecord::Migration[7.2]
   def change
-    create_table :spree_refresh_tokens do |t|
+    create_table :spree_refresh_tokens, if_not_exists: true do |t|
       t.string :token, null: false
       t.references :user, polymorphic: true, null: false
       t.datetime :expires_at, null: false

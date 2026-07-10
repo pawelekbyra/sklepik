@@ -1,6 +1,6 @@
 class CreateSpreePaymentSessions < ActiveRecord::Migration[7.2]
   def change
-    create_table :spree_payment_sessions do |t|
+    create_table :spree_payment_sessions, if_not_exists: true do |t|
       t.string :type, null: false, index: true
       t.references :order, null: false, index: true
       t.references :payment_method, null: false, index: true
