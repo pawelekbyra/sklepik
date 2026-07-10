@@ -14,6 +14,10 @@ module Spree
           def serializer_class
             Spree.api.admin_store_credit_category_serializer
           end
+
+          def permitted_params
+            params.permit(:name)
+          end
         end
       end
     end
