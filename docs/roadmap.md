@@ -115,6 +115,11 @@ Znaleziska F13 prompt 4 i 5: Store API ma `wishlists`, `digitals/:token` i `Spre
 **F24. Runbooki observability dla typowych awarii** — `sklepik` (docs) — `[zamknięte 2026-07-10]`
 Znalezisko systemowego audytu (SYS-014): brak runbooków dla awarii operacyjnych. Implementacja: stworzono `docs/runbooks.md` z 6 runbookami dla common production issues (OOM, 500 na liście, duplicate payment, empty catalog, webhook retry loop, rate limit). Każdy runbook: objawy → przyczyny → diagnostyka (z komendami) → fixes → prevention. Plus general troubleshooting procedures.
 
+**CI Test Fixes** — `sklepik` — `[zamknięte 2026-07-10, PR #25]`
+Naprawiono dwie krytyczne usterki w testach zaraz po zmergowaniu F15-F24:
+1. **Rack::Attack initializer brakował require** (commit 99aaaf9): `config/initializers/rack_attack.rb` powodował NameError na boot (`Rack::Attack` was undefined), co blokowało wszystkie migracje bazy na wszystkich 627 testach — zielone testy po dodaniu `require 'rack/attack'` na pierwszej linii.
+2. **Test isolation issue w role_user_spec.rb** (commit 9b1a532): MySQL parallel test run (2/3) failowała z duplicate key error na spree_users ID 99 — hardcoded `AdminUser.new(id: 99)` kolidował z ID już istniejącym w parallelized database copy. Zmienione na timestamp-based unique ID generation (`AdminUser.create!(email: "admin#{Time.current.to_i}@example.com", ...)`) — baza auto-assiguje unikalny ID, zerowe konflikty.
+
 ### P3 — siatka bezpieczeństwa
 
 **F9. Testy e2e łańcucha rynek → waluta → publikacja → cache** — oba repo — `[otwarte]`
