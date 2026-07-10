@@ -338,10 +338,13 @@ RSpec.describe Spree::Api::V3::Admin::PricesController, type: :controller do
 
     context 'with a non-English active locale' do
       it 'persists a canonical decimal amount unchanged regardless of request locale' do
+        # Build the record under the default locale — the request-locale
+        # simulation must only affect price parsing, not the translated
+        # product name (which would leave the base column null under `:de`).
+        eur_variant = create(:variant, product: product)
+
         allow(I18n).to receive(:locale).and_return(:de)
         allow(I18n.config).to receive(:locale).and_return(:de)
-
-        eur_variant = create(:variant, product: product)
 
         post :create, params: {
           variant_id: eur_variant.prefixed_id, currency: 'EUR', amount: '24.99'
@@ -352,10 +355,10 @@ RSpec.describe Spree::Api::V3::Admin::PricesController, type: :controller do
       end
 
       it 'rejects a comma-decimal amount instead of silently corrupting it' do
+        eur_variant = create(:variant, product: product)
+
         allow(I18n).to receive(:locale).and_return(:de)
         allow(I18n.config).to receive(:locale).and_return(:de)
-
-        eur_variant = create(:variant, product: product)
 
         post :create, params: {
           variant_id: eur_variant.prefixed_id, currency: 'EUR', amount: '24,99'
