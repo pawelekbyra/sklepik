@@ -4,6 +4,12 @@ require 'rack/attack'
 
 Rack::Attack.cache.store = ActiveSupport::Cache::MemoryStore.new
 
+# Rate limiting is a production safeguard. Turn it off in the test environment:
+# the dashboard E2E suite authenticates on nearly every one of its 150+ specs
+# from a single loopback IP, which blows past the per-IP login throttle and
+# stalls the whole run on 429s. No spec asserts throttling behaviour.
+Rack::Attack.enabled = false if defined?(Rails) && Rails.env.test?
+
 # Store API: login throttle (5 attempts per IP per hour)
 Rack::Attack.throttle('store/auth/login/ip', limit: 5, period: 1.hour) do |req|
   if req.post? && req.path == '/api/v3/store/auth/login'
