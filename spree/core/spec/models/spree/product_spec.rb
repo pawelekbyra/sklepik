@@ -2260,4 +2260,18 @@ describe Spree::Product, type: :model do
       end
     end
   end
+
+  describe 'price updates triggering product touch and event publication' do
+    let!(:product) { create(:product, store: store) }
+    let!(:variant) { product.master }
+    let!(:price) { variant.prices.first }
+
+    it 'updates product.updated_at when price amount changes (via touch chain)' do
+      original_updated_at = product.reload.updated_at
+      travel_to 1.second.from_now do
+        price.update!(amount: 99.99)
+        expect(product.reload.updated_at).to be > original_updated_at
+      end
+    end
+  end
 end

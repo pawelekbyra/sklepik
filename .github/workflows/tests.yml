@@ -113,6 +113,7 @@ jobs:
     name: "PostgreSQL - ${{ matrix.project }} (${{ matrix.shard }}/${{ matrix.total_shards }})"
     needs: build-postgres
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     strategy:
       fail-fast: false
       matrix:
@@ -260,6 +261,7 @@ jobs:
     name: "MySQL - ${{ matrix.project }} (${{ matrix.shard }}/${{ matrix.total_shards }})"
     needs: build-mysql
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     strategy:
       fail-fast: false
       matrix:

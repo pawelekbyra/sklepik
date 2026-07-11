@@ -140,6 +140,7 @@ module Spree
     after_save :run_touch_callbacks, if: :anything_changed?
     after_save :reset_nested_changes
     after_touch :touch_taxons
+    after_touch -> { publish_event("#{event_prefix}.updated") }, if: :should_publish_events?
 
     after_commit :auto_match_taxons, if: :eligible_for_taxon_matching?
 
