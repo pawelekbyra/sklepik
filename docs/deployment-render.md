@@ -1,6 +1,6 @@
-# Deployment backendu na Render
+# Deployment backendu na Render (legacy)
 
-Opis **faktycznego** zachowania deployu. Jeśli zmieniasz `render.yaml`, `bin/render-build.sh` albo `bin/render-release.sh`, zaktualizuj ten plik w tym samym commicie.
+**Nieużywane na produkcji od 2026-07-09** — backend działa teraz na Oracle Cloud, patrz [`deployment-oracle.md`](deployment-oracle.md). Ten plik zostaje jako historyczna referencja: opisuje jak działał deploy na Renderze i jakie ryzyko (timestampy migracji, idempotentność) stąd wynika — ta sama zasada idempotentnych migracji obowiązuje nadal, bo `server/` jest efemeryczny również w obecnym Oracle flow.
 
 ## Zasoby (Blueprint `render.yaml`)
 

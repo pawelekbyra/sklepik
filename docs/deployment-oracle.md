@@ -1,6 +1,6 @@
 # Deployment backendu na Oracle Cloud
 
-Opis decyzji i docelowego kierunku migracji backendu/API z Rendera na Oracle Cloud. Ten plik nie oznacza jeszcze, że produkcja działa na Oracle — do czasu cutoveru źródłem prawdy dla żywego backendu pozostaje [`deployment-render.md`](deployment-render.md).
+**Produkcja od 2026-07-09.** Backend/API działa na Oracle Cloud VPS (141.253.103.172) — cutover z Rendera zakończony. [`deployment-render.md`](deployment-render.md) zostaje jako opis legacy hostingu (Render nie jest już używany na produkcji).
 
 ## Dlaczego migrujemy z Rendera
 
@@ -175,16 +175,17 @@ Po utworzeniu instancji i potwierdzeniu publicznego IP:
 
 ## Cutover checklist
 
-Przed uznaniem migracji za zakończoną:
+**Status: zakończony 2026-07-09.**
 
-- `GET /up` działa po HTTPS na nowym hostingu,
-- Store API odpowiada z danymi produktów,
-- Admin API działa z panelem Vercel,
-- Sidekiq worker działa i ma dostęp do Redis/Postgres,
-- Active Storage/R2 nadal generuje poprawne publiczne URL-e,
-- webhooki do storefrontu działają,
-- Vercel `sklepik_front` ma poprawne `SPREE_API_URL` i `SPREE_PUBLISHABLE_KEY`,
-- `packages/dashboard/vercel.json` albo konfiguracja Vercel panelu wskazuje na nowy backend,
-- logi i restart po reboot serwera są sprawdzone,
-- jest plan backupu Postgresa,
-- `docs/architektura.md` opisuje Oracle jako produkcyjny backend dopiero po faktycznym cutoverze.
+- ✅ `GET /up` działa po HTTPS na nowym hostingu,
+- ✅ Store API odpowiada z danymi produktów,
+- ✅ Admin API działa z panelem Vercel,
+- ✅ Sidekiq worker działa i ma dostęp do Redis/Postgres,
+- ✅ Active Storage/R2 nadal generuje poprawne publiczne URL-e,
+- ✅ webhooki do storefrontu działają,
+- ✅ Vercel `sklepik_front` ma poprawne `SPREE_API_URL` i `SPREE_PUBLISHABLE_KEY`,
+- ✅ `packages/dashboard/vercel.json` albo konfiguracja Vercel panelu wskazuje na nowy backend,
+- ⬜ jest plan backupu Postgresa — do zweryfikowania (patrz `oracle-setup-guide.md` Faza 5 dla przykładowego skryptu),
+- ✅ `docs/architektura.md` opisuje Oracle jako produkcyjny backend.
+
+**Nie zrobione trwale (znane ryzyko):** firewall hosta (`iptables`) nie ma trwałych reguł dla portów 80/443 (brak `iptables-persistent`, patrz sekcja SSL wyżej) — po reboocie serwera trzeba je dodać ponownie.
