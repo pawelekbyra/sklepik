@@ -33,9 +33,9 @@ _Zweryfikowane 2026-07-11:_ edycja samej ceny (`Spree::Price`) idzie przez `touc
 _Powiązane znalezione i naprawione 2026-07-07 (audyt, patrz F12):_ osobna, ale tej samej rangi klasa błędu — **ciche błędy przy mutacjach**, nie przy ładowaniu list. `useOrderMutation` nie miał `onError`, więc payment capture/void/create, fulfillment, zwroty, karty podarunkowe/kredyt sklepowy, edycja adresu, notatki, tagi — wszystko failowało bez toastu (najwyższe ryzyko: capture/void płatności, sprzedawca mógł myśleć że transakcja przeszła). Edycja adresu zamówienia dodatkowo invalidowała zły klucz cache (`['order', id]` zamiast `['orders', storeId, id]`) — udany zapis nie odświeżał widoku. Usuwanie klienta z listy łykało wszystkie błędy przez `.catch(() => undefined)`. Bulk-add w pickerze mediów wariantu nie miał żadnej obsługi błędu.
 _Zamknięte gdy:_ `ResourceTable` pokazuje jawny stan błędu (część list) ORAZ audyt F12 potwierdzi że nie ma więcej cichych mutacji w priorytetowych zasobach.
 
-**F6. Trwała idempotencja webhooków e-mail** — `sklepikFront` — `[otwarte]`
-Ochrona przed duplikatami zdarzeń przenosi się z `Set` w pamięci do trwałego magazynu (Redis / Postgres z unique constraint + TTL).
-_Zamknięte gdy:_ restart instancji nie resetuje ochrony przed duplikatami.
+**F6. Trwała idempotencja webhooków e-mail** — `sklepikFront` — `[zamknięte kodowo 2026-07-11, wymaga konfiguracji właściciela]`
+Ochrona przed duplikatami zdarzeń przeniesiona z `Set` w pamięci na Upstash Redis (`src/lib/webhooks/idempotency.ts`, klucz `webhook-processed:{eventId}`, TTL 7 dni; działa też z Vercel KV — te same env var, druga konwencja nazw). Bez ustawionych credentiali kod łagodnie wraca do starego zachowania in-memory (log ostrzeżenia w produkcji) — nic się nie psuje, ale ochrona nie jest jeszcze trwała. Testy: 8 przypadków (fallback in-memory, ścieżka Redis, alias nazw dla Vercel KV).
+_Zamknięte gdy:_ właściciel ustawi `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` (albo `KV_REST_API_URL`/`KV_REST_API_TOKEN`) na Vercelu — dopiero wtedy restart instancji faktycznie nie resetuje ochrony przed duplikatami.
 
 ### P2 — porządek operacyjny
 
