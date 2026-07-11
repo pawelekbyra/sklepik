@@ -36,6 +36,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Switch,
   Textarea,
   useConfirm,
 } from '@spree/dashboard-ui'
@@ -585,6 +586,18 @@ export function SEOCard({ form, product }: FormCardProps & { product?: Product }
           />
           <FieldError errors={[errors.meta_description]} />
         </Field>
+        <Field>
+          <FieldLabel htmlFor="product-meta-keywords">
+            {t('admin.fields.meta_keywords.label')}
+          </FieldLabel>
+          <Input
+            id="product-meta-keywords"
+            placeholder={t('admin.products.seo.meta_keywords_placeholder')}
+            aria-invalid={!!errors.meta_keywords || undefined}
+            {...form.register('meta_keywords')}
+          />
+          <FieldError errors={[errors.meta_keywords]} />
+        </Field>
       </CardContent>
     </Card>
   )
@@ -631,6 +644,29 @@ export function StatusCard({ form }: FormCardProps) {
               </Select>
             )}
           />
+        </Field>
+        <Field>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col">
+              <FieldLabel htmlFor="product-promotionable" className="cursor-pointer">
+                {t('admin.fields.product.promotionable.label')}
+              </FieldLabel>
+              <span className="text-xs text-muted-foreground">
+                {t('admin.fields.product.promotionable.help')}
+              </span>
+            </div>
+            <Controller
+              name="promotionable"
+              control={form.control}
+              render={({ field }) => (
+                <Switch
+                  id="product-promotionable"
+                  checked={!!field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+          </div>
         </Field>
       </CardContent>
     </Card>

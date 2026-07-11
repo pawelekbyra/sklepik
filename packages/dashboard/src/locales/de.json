@@ -597,6 +597,10 @@
         "available_on": {
           "label": "Verfügbar ab"
         },
+        "promotionable": {
+          "label": "Für Aktionen berechtigt",
+          "help": "Rabatte und Aktionen für dieses Produkt zulassen."
+        },
         "discontinue_on": {
           "label": "Einstellen am"
         },
@@ -2046,7 +2050,8 @@
       "seo": {
         "slug_placeholder": "produkt-url-handle",
         "meta_title_placeholder": "SEO-Titel",
-        "meta_description_placeholder": "SEO-Beschreibung"
+        "meta_description_placeholder": "SEO-Beschreibung",
+        "meta_keywords_placeholder": "SEO-Keywords, kommagetrennt"
       },
       "tax_category_placeholder": "Steuerkategorie auswählen",
       "transfers": {

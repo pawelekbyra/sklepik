@@ -655,6 +655,32 @@ RSpec.describe Spree::Api::V3::Admin::ProductsController, type: :controller do
       expect(product.reload.name).to eq('Updated Name')
     end
 
+    it 'updates promotionable and meta_keywords' do
+      patch :update, params: {
+        id: product.prefixed_id,
+        promotionable: false,
+        meta_keywords: 'cocoa, ceremonial, premium'
+      }, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(json_response['promotionable']).to eq(false)
+      expect(json_response['meta_keywords']).to eq('cocoa, ceremonial, premium')
+      product.reload
+      expect(product.promotionable).to eq(false)
+      expect(product.meta_keywords).to eq('cocoa, ceremonial, premium')
+    end
+
+    it 'silently ignores an unknown digital param instead of raising' do
+      # `digital` is a computed method (Product#digital?, derived from
+      # shipping_category), not a real column or attribute writer — it must
+      # not be in permitted_params, or this would raise
+      # ActiveModel::UnknownAttributeError instead of a clean 200/422.
+      patch :update, params: { id: product.prefixed_id, name: 'Still Works', digital: true }, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(product.reload.name).to eq('Still Works')
+    end
+
     context 'with full payload: name, description, status, categories, tags, SEO, variants with multi-currency prices' do
       let!(:product_to_update) do
         create(:product_with_option_types).tap do |p|

@@ -111,7 +111,11 @@ export const productFormSchema = z.object({
   // SEO
   meta_title: z.string().optional(),
   meta_description: z.string().optional(),
+  meta_keywords: z.string().optional(),
   slug: z.string().optional(),
+
+  // Merchandising
+  promotionable: z.boolean().optional(),
 
   // Variants — the single source of truth for purchasable attributes.
   // Spree::Product#variants= matches by id, creates new entries, and
@@ -150,7 +154,9 @@ export function newProductFormDefaults(): ProductFormValues {
     tax_category_id: null,
     meta_title: '',
     meta_description: '',
+    meta_keywords: '',
     slug: '',
+    promotionable: true,
     variants: [
       {
         sku: null,

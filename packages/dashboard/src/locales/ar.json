@@ -645,6 +645,10 @@
         "available_on": {
           "label": "متاح في"
         },
+        "promotionable": {
+          "label": "مؤهل للعروض الترويجية",
+          "help": "السماح بتطبيق الخصومات والعروض الترويجية على هذا المنتج."
+        },
         "discontinue_on": {
           "label": "إيقاف في"
         },
@@ -2094,7 +2098,8 @@
       "seo": {
         "slug_placeholder": "product-url-handle",
         "meta_title_placeholder": "SEO title",
-        "meta_description_placeholder": "SEO description"
+        "meta_description_placeholder": "SEO description",
+        "meta_keywords_placeholder": "الكلمات المفتاحية لتحسين محركات البحث، مفصولة بفواصل"
       },
       "tax_category_placeholder": "Select tax category",
       "transfers": {

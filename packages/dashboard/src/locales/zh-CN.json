@@ -645,6 +645,10 @@
         "available_on": {
           "label": "上架日期"
         },
+        "promotionable": {
+          "label": "可参与促销",
+          "help": "允许对该商品应用折扣和促销活动。"
+        },
         "discontinue_on": {
           "label": "下架日期"
         },
@@ -2094,7 +2098,8 @@
       "seo": {
         "slug_placeholder": "product-url-handle",
         "meta_title_placeholder": "SEO 标题",
-        "meta_description_placeholder": "SEO 描述"
+        "meta_description_placeholder": "SEO 描述",
+        "meta_keywords_placeholder": "SEO 关键词，用逗号分隔"
       },
       "tax_category_placeholder": "选择税务类别",
       "transfers": {

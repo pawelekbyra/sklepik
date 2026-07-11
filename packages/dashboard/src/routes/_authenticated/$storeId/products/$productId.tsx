@@ -133,7 +133,9 @@ function productToFormValues(
     tax_category_id: product.tax_category_id ?? null,
     meta_title: product.meta_title ?? '',
     meta_description: product.meta_description ?? '',
+    meta_keywords: product.meta_keywords ?? '',
     slug: product.slug ?? '',
+    promotionable: product.promotionable ?? true,
     variants: variantSource.map((v, i) => variantToFormValues(v, i)),
     custom_fields:
       product.custom_fields?.map((cf) => ({

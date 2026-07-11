@@ -647,6 +647,10 @@
         "available_on": {
           "label": "Available on"
         },
+        "promotionable": {
+          "label": "Eligible for promotions",
+          "help": "Allow discounts and promotions to apply to this product."
+        },
         "discontinue_on": {
           "label": "Discontinue on"
         },
@@ -2093,7 +2097,8 @@
       "seo": {
         "slug_placeholder": "product-url-handle",
         "meta_title_placeholder": "SEO title",
-        "meta_description_placeholder": "SEO description"
+        "meta_description_placeholder": "SEO description",
+        "meta_keywords_placeholder": "SEO keywords, comma separated"
       },
       "tax_category_placeholder": "Select tax category",
       "transfers": {

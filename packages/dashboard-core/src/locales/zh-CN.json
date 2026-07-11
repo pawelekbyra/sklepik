@@ -258,6 +258,9 @@
       "meta_description": {
         "label": "Meta 描述"
       },
+      "meta_keywords": {
+        "label": "Meta 关键词"
+      },
       "status": {
         "label": "状态"
       },

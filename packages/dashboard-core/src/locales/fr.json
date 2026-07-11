@@ -258,6 +258,9 @@
       "meta_description": {
         "label": "Méta-description"
       },
+      "meta_keywords": {
+        "label": "Méta-mots-clés"
+      },
       "status": {
         "label": "Statut"
       },
