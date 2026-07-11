@@ -20,7 +20,7 @@ Poradniki diagnostyczne dla wspólnych problemów w produkcji. Każdy runbook po
 5. Sprawdzź jeśli jest spike w API traffic w tym czasie (slow requests, timeouts)
 
 **Jak naprawić:**
-1. **Short term:** Restart aplikacji: `docker compose -f /path/to/render.yaml restart web`
+1. **Short term:** Restart aplikacji: `cd ~/sklepik && docker-compose restart web`
 2. **Medium term:** 
    - Sprawdzić oprogramowanie Rails: `bundle exec rails db:sessions:trim` (czyści stare sessions)
    - Dodać `preload` / `includes` do N+1 queryów
@@ -42,7 +42,7 @@ Poradniki diagnostyczne dla wspólnych problemów w produkcji. Każdy runbook po
 - Regression w CanCanCan scope: accessible_by wraca unpredictable results
 
 **Jak diagnozować:**
-1. Sprawdzić backend logs: `docker compose -f render.yaml logs web | tail -100 | grep -A 5 "500\|ERROR"`
+1. Sprawdzić backend logs: `cd ~/sklepik && docker-compose logs web | tail -100 | grep -A 5 "500\|ERROR"`
 2. Szukać stacktrace w logach
 3. Odtworzyć request cURL: `curl "http://localhost:3000/api/v3/admin/products" -H "Authorization: Bearer $TOKEN"`
 4. Sprawdzić query params - czy jest `filter[name]=something` czy `sort=-invalid_field`?
@@ -155,7 +155,7 @@ Poradniki diagnostyczne dla wspólnych problemów w produkcji. Każdy runbook po
    - 404/403: endpoint nie istnieje lub auth failed
    - 500: endpoint zwraca server error (bug)
    - timeout/connection refused: endpoint offline
-3. SSH na backend: `docker compose -f render.yaml logs worker | tail -50 | grep webhook`
+3. SSH na backend: `cd ~/sklepik && docker-compose logs sidekiq | tail -50 | grep webhook`
 4. Testuj endpoint cURL:
    ```bash
    curl -X POST "https://storefront.vercel.app/api/webhooks/spree" \
@@ -216,14 +216,15 @@ Poradniki diagnostyczne dla wspólnych problemów w produkcji. Każdy runbook po
 
 1. **Logi** — zawsze zacznij tu:
    ```bash
-   docker compose -f render.yaml logs web -f           # realtime
-   docker compose -f render.yaml logs web --tail 100   # ostatnie 100 linii
+   cd ~/sklepik
+   docker-compose logs web -f           # realtime
+   docker-compose logs web --tail 100   # ostatnie 100 linii
    grep "ERROR\|500" <(logs)                           # filter errors
    ```
 
 2. **Rails console** — test w runtime:
    ```bash
-   docker compose -f render.yaml exec web rails c
+   docker-compose exec web rails c
    Order.last(5).map { |o| [o.number, o.state, o.created_at] }
    ```
 

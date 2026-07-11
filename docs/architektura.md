@@ -42,7 +42,7 @@ Uwaga na mylącą nazwę: projekt Vercel `sklepik_back` to **panel administracyj
 ## Przepływy danych
 
 - **Klient kupuje:** storefront → Store API (`X-Spree-API-Key` publishable key; koszyk gościa przez token w cookie). Cały rendering server-side w Next.js, cache przez `"use cache"` + edge Vercela.
-- **Operator zarządza:** dashboard → Admin API (JWT po zalogowaniu; single-origin proxy `/api/*` → obecnie Render w `packages/dashboard/vercel.json`, po cutoverze Oracle), dzięki czemu httpOnly refresh cookie działa bez CORS.
+- **Operator zarządza:** dashboard → Admin API (JWT po zalogowaniu; single-origin proxy `/api/*` → Oracle Cloud w `packages/dashboard/vercel.json`, zmienione z Rendera 2026-07-09), dzięki czemu httpOnly refresh cookie działa bez CORS.
 - **Media produktów:** upload przez Admin API → Active Storage → R2 (S3-compatible); URL-e publiczne budowane z `CDN_HOST`.
 - **E-maile transakcyjne:** backend wysyła webhooki → storefront (`src/app/api/webhooks`, react-email/Resend). Silnikowe `spree/emails` nie jest używane docelowo.
 - **Inwalidacja cache storefrontu:** ten sam webhook endpoint (Admin → Ustawienia → Webhooks, wskazuje na `{storefront}/api/webhooks/spree`) ma też subskrybowane `product.created`/`updated`/`deleted`/`activated`/`archived`/`out_of_stock`/`back_in_stock` — storefront busuje na nich cache produktu zamiast czekać na TTL (F4, `sklepikFront/docs/technical-debt.md`). Zasada na przyszłość: nowy event dopisuje się do subskrypcji w adminie **tylko** razem z handlerem po stronie frontu (`sklepikFront/src/lib/webhooks/handlers.ts`) — inaczej to martwy ruch webhookowy bez efektu.
@@ -60,15 +60,15 @@ Sekrety trzymamy wyłącznie w dashboardach hostingów albo na serwerze. Nigdy w
 
 ## Deployment
 
-- Backend obecnie: [`deployment-render.md`](deployment-render.md) — jak realnie działa build na Render (i jakie ma znane ryzyka).
-- Backend docelowo: [`deployment-oracle.md`](deployment-oracle.md) — decyzja migracyjna, wybrany VPS, zasady bezpieczeństwa i checklisty cutoveru.
+- Backend obecnie: [`deployment-oracle.md`](deployment-oracle.md) — Oracle Cloud VPS, decyzja migracyjna, wybrany shape, zasady bezpieczeństwa, SSL, checklisty cutoveru (zrealizowany 2026-07-09).
+- Backend legacy: [`deployment-render.md`](deployment-render.md) — jak działał build na Render; zachowane jako referencja, Render nie jest już używany na produkcji.
 - Storefront: `sklepikFront/docs/deployment-vercel.md`.
 - Admin: deploy automatyczny z repo `sklepik` (Root Directory `packages/dashboard`); znany quirk — webhook Vercela potrafi przestać łapać pushe, pomaga ręczny "Redeploy" w UI.
 
 ## Historia wyborów infrastruktury
 
-- Neon Postgres i Upstash Redis były testowane na starcie (przez Vercel) i **zostały porzucone** — produkcyjny backend korzysta obecnie z bazy i Redisa na Render.
-- Render free/starter okazał się zbyt słaby dla backendu Rails/Spree: cold start i dwukrotny OOM przy ruchu API; Starter nie rozwiązuje RAM, a pełniejszy Render setup z większym webem i workerem Sidekiq robi się relatywnie drogi.
-- Oracle Cloud został wybrany jako kierunek migracji backendu: najpierw próbowany Always Free Ampere A1, ale w regionie Paris wystąpił `Out of capacity`; zaakceptowany fallback to płatny, mały `VM.Standard.E4.Flex` 1 OCPU / 8 GB RAM, bo celem jest stabilny sklep z drogą rozbudowy, nie najtańszy możliwy hosting za wszelką cenę.
+- Neon Postgres i Upstash Redis były testowane na starcie (przez Vercel) i **zostały porzucone**.
+- Render free/starter okazał się zbyt słaby dla backendu Rails/Spree: cold start i dwukrotny OOM przy ruchu API; Starter nie rozwiązuje RAM, a pełniejszy Render setup z większym webem i workerem Sidekiq robi się relatywnie drogi. Render był produkcyjnym hostem do 2026-07-09, wycofany po migracji na Oracle.
+- Oracle Cloud został wybrany jako kierunek migracji backendu i jest produkcyjnym hostem od 2026-07-09: najpierw próbowany Always Free Ampere A1, ale w regionie Paris wystąpił `Out of capacity`; zaakceptowany fallback to płatny, mały `VM.Standard.E4.Flex` 1 OCPU / 8 GB RAM, bo celem jest stabilny sklep z drogą rozbudowy, nie najtańszy możliwy hosting za wszelką cenę. Postgres i Redis też działają teraz na tej samej VM (Docker Compose), nie na Renderze.
 - Kierunek "Vercel Commerce jako storefront" został **odrzucony** (brak ROI — `@spree/sdk` + obecny storefront realizują ten sam zakres bez pisania adaptera Shopify→Spree).
 - Legacy Rails admin (`spree/admin`) jest wyłączony na rzecz React SPA (`packages/dashboard`).

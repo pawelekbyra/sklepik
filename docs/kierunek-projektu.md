@@ -17,7 +17,7 @@ System składa się z dwóch repozytoriów, które działają razem:
 ```text
 pawelekbyra/sklepik
 → silnik commerce, backend Rails, Admin API + Store API, panel administracyjny (React SPA),
-  SDK TypeScript, deployment backendu (Render)
+  SDK TypeScript, deployment backendu (Oracle Cloud VPS)
 
 pawelekbyra/sklepikFront
 → storefront Next.js, doświadczenie klienta, branding, UX, SEO, deployment na Vercel
@@ -68,7 +68,7 @@ Domyślnie rozszerzamy Spree zamiast modyfikować jego core. Modyfikacja core je
 - **Admin:** React SPA (`packages/dashboard`), rozmawia wyłącznie z Admin API.
 - **Storefront:** Next.js 16 + React 19 + Tailwind, rozmawia ze Store API przez `@spree/sdk`.
 - **Płatności:** Stripe jako domyślny kierunek (jeszcze nieskonfigurowane).
-- **Hosting:** Render (backend + Postgres + Redis), Vercel (storefront i admin), Cloudflare R2 (media).
+- **Hosting:** Oracle Cloud VPS (backend + Postgres + Redis + Sidekiq, od 2026-07-09; Render używany wcześniej, wycofany), Vercel (storefront i admin), Cloudflare R2 (media).
 
 ## Fazy projektu
 
