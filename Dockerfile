@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     libyaml-dev \
     zlib1g-dev \
+    libvips42 \
     git \
     curl \
     && rm -rf /var/lib/apt/lists/*
