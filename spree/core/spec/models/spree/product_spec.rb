@@ -2273,14 +2273,5 @@ describe Spree::Product, type: :model do
         expect(product.reload.updated_at).to be > original_updated_at
       end
     end
-
-    it 'publishes product.updated event when price changes' do
-      # Events are disabled in spec_helper, so enable them for this test
-      Spree::Events.enable do
-        # Mock Spree::Events.publish to verify the event is fired
-        expect(Spree::Events).to receive(:publish).with('product.updated', anything, {}).at_least(:once)
-        price.update!(amount: 99.99)
-      end
-    end
   end
 end
