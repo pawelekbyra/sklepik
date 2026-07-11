@@ -32,6 +32,8 @@ Storefront pod domeną główną; panel admina docelowo pod `/admin/*` tej samej
 
 Pierwsze konto tworzy seed backendu (`spree/core/app/services/spree/seeds/admin_user.rb`; nadpisywalne `ADMIN_EMAIL`/`ADMIN_PASSWORD` przy seedzie). Nie commitujemy do repo: loginów produkcyjnych, haseł, tokenów, kluczy API. Dane kont developerskich mogą istnieć tylko dla środowiska lokalnego i muszą być opisane jako nieprodukcyjne.
 
+**Pułapka (2026-07-11):** logowanie panelu (`AuthController#create`) autentykuje przez `Spree.admin_user_class` (`Spree::AdminUser`) — model **całkowicie osobny** od `Spree.user_class` (`Spree::User`, konta klientów storefrontu). Zmiana hasła/emaila na `Spree::User` **zapisuje się bez błędu**, ale logowanie do panelu nadal używa starych danych `Spree::AdminUser`, bo to inny rekord w innej tabeli. Przy resetowaniu hasła admina zawsze operować na `Spree::AdminUser.find_by(email: ...)`, nigdy na `Spree.user_class`/`Spree::User` — brak wyjątku przy zapisie złego modelu nie jest potwierdzeniem sukcesu.
+
 ## Relacja do storefrontu
 
 Zmiana produktu w panelu admina trafia do storefrontu wyłącznie przez Store API. Storefront nie omija backendu i nie utrzymuje własnego źródła prawdy dla produktów, cen, koszyka ani zamówień. Inwalidacja cache jest webhookowa i natychmiastowa (roadmapa F4, zamknięte 2026-07-11) — zmiany produktu i ceny widać w storefroncie w sekundach, nie po TTL.

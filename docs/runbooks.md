@@ -212,6 +212,29 @@ Poradniki diagnostyczne dla wspólnych problemów w produkcji. Każdy runbook po
 
 ---
 
+## 7. Panel admina: 401 "Invalid email/password" mimo poprawnie zresetowanego hasła
+
+**Objawy:** Zresetowałeś hasło admina przez `rails runner`, zapis się powiódł bez błędu, ale `POST /api/v3/admin/auth/login` nadal zwraca 401 `authentication_failed`.
+
+**Przyczyna (potwierdzona 2026-07-11):** Istnieją dwa osobne modele użytkowników — `Spree.user_class` (`Spree::User`, konta klientów storefrontu) i `Spree.admin_user_class` (`Spree::AdminUser`, konta panelu). `Spree::Api::V3::Admin::AuthController#create` autentykuje wyłącznie przez `Spree.admin_user_class`. Zmiana hasła na `Spree.user_class`/`Spree::User` zapisuje się bez błędu (to prawidłowy, istniejący rekord — po prostu niewłaściwy), więc łatwo pomylić "zapis się udał" z "hasło zostało zmienione tam gdzie trzeba".
+
+**Jak diagnozować:**
+1. Sprawdź obie klasy: `Spree.user_class` vs `Spree.admin_user_class` — jeśli się różnią (`Spree::User` vs `Spree::AdminUser`), to jest to.
+2. `Spree::AdminUser.all.pluck(:id, :email)` — to jest prawdziwe konto(-a) panelu, nie `Spree.user_class.where(...)`.
+3. Test bezpośredni z pominięciem przeglądarki i Vercela: `curl -X POST https://141-253-103-172.nip.io/api/v3/admin/auth/login -d '{"email":"...","password":"..."}'` — jeśli zwraca 401 z prawidłowym JSON (nie 500), backend żyje i to naprawdę złe dane logowania, nie problem sieci/proxy.
+
+**Jak naprawić:**
+```ruby
+user = Spree::AdminUser.find_by(email: "stary@example.com")
+user.email = "nowy@example.com"
+user.password = user.password_confirmation = "nowe_haslo"
+user.save!
+```
+
+**Prevention:** przy każdej zmianie danych logowania panelu jawnie operować na `Spree::AdminUser`, nigdy na `Spree.user_class`/`User` z pamięci/przyzwyczajenia z innych projektów Spree.
+
+---
+
 ## Ogólne procedury troubleshootingu
 
 1. **Logi** — zawsze zacznij tu:
