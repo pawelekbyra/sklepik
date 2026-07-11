@@ -43,11 +43,12 @@ Uporządkowane wg wagi — szczegóły i plan naprawy w [`roadmap.md`](roadmap.m
 
 15. **Audyt bezpieczeństwa serwera Oracle (2026-07-11) — pozostałe ustalenia:** poza naprawionymi wyżej uprawnieniami plików, audyt read-only wykazał:
     - **Potwierdzone dobre:** Postgres (5432) i Redis (6379) **nie** są wystawione na internet (tylko sieć Docker); `PasswordAuthentication no` (logowanie tylko kluczem); TLS 1.3 + HSTS + `X-Frame-Options` + `X-Content-Type-Options`; `unattended-upgrades` aktywne, 0 zaległych aktualizacji bezpieczeństwa; `iptables` z regułą `REJECT` na końcu łańcucha INPUT; sekrety **nie** są w gicie ani w logach; brak pliku `~/.aws` ze statycznymi credentialami.
-    - **Do rozważenia (nie naprawione, wymagają decyzji/uprawnień):**
-      - **Brak `fail2ban`** — w `auth.log` 1838 nieudanych prób SSH (boty, top: `91.92.40.204`, `103.121.91.144`). Realne ryzyko niskie, bo logowanie hasłem jest wyłączone (boty nie wejdą bez klucza), ale `fail2ban` zredukowałby szum/obciążenie. Instalacja to zmiana systemowa — do decyzji właściciela.
-      - **`rpcbind` (port 111) działa niepotrzebnie** — blokowany przez `iptables` z zewnątrz, ale usługa nie jest do niczego potrzebna; można `systemctl disable --now rpcbind`.
-      - **SSH `PermitRootLogin without-password`** — root może wejść kluczem. Można zaostrzyć do `no` (dostęp i tak jest przez `ubuntu` + sudo). Również `X11Forwarding yes` jest zbędny.
-      - **Sekret w `~/.bash_history`** — jakieś polecenie z sekretem (np. `POSTGRES_PASSWORD`/`RAILS_MASTER_KEY`) trafiło do historii basha, prawdopodobnie przy początkowej konfiguracji serwera. Wyczyścić (`history -c` + edycja pliku) i na przyszłość poprzedzać wrażliwe polecenia spacją.
+    - **Naprawione 2026-07-11 (druga tura audytu):**
+      - **`fail2ban` zainstalowany i aktywny** — jail `sshd`, `bantime 1h`, `maxretry 5`. Whitelist (`ignoreip`) obejmuje `127.0.0.1/8`, `172.16.0.0/12` (sieci Docker) i **`31.60.0.0/16`** (zakres automatyzacji właściciela — celowo, żeby jej nie zbanować). Config: `/etc/fail2ban/jail.local`. Kontekst: w `auth.log` było 1838 nieudanych prób SSH od botów (logowanie hasłem i tak wyłączone, więc nie mogły wejść).
+      - **`rpcbind` (port 111) wyłączony** — `systemctl disable --now rpcbind rpcbind.socket`. Nasłuchujące porty to teraz wyłącznie 80/443/22 (+ lokalny `127.0.0.53:53`).
+      - **SSH zaostrzony** — `/etc/ssh/sshd_config.d/99-hardening.conf`: `PermitRootLogin no` + `X11Forwarding no`. Zwalidowane `sshd -t` przed `reload` i potwierdzone świeżym połączeniem (dostęp przez `ubuntu` + sudo nadal działa).
+      - **`~/.bash_history` wyczyszczony** — usunięty sekret, który tam trafił przy początkowej konfiguracji (ubuntu i root). Na przyszłość: wrażliwe polecenia poprzedzać spacją, żeby nie trafiały do historii.
+    - **Nadal do rozważenia (drobne, świadomie zostawione):**
       - **Brak nagłówka `Content-Security-Policy`** na odpowiedziach backendu (drobne, dotyczy głównie API).
       - **`unattended-upgrades` bez auto-reboot** — aktualizacje kernela wymagają ręcznego restartu (jak dzisiejszy). Świadoma decyzja: auto-reboot na produkcji bywa ryzykowny, lepiej ręcznie.
 
