@@ -12,6 +12,10 @@ RSpec.describe Spree::Api::V3::Admin::ProductSerializer do
       expect(subject.keys).to include('deleted_at', 'status', 'created_at', 'updated_at')
     end
 
+    it 'includes promotionable, matching the writable permitted_params attribute' do
+      expect(subject['promotionable']).to eq(product.promotionable)
+    end
+
     it 'includes all custom fields with storefront_visible when expanded' do
       public_def = create(:metafield_definition, resource_type: 'Spree::Product', display_on: 'both')
       private_def = create(:metafield_definition, :back_end_only, resource_type: 'Spree::Product')

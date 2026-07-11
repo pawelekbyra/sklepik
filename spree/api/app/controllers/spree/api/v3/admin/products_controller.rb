@@ -185,7 +185,7 @@ module Spree
               :name, :description, :slug, :status, :available_on,
               :meta_title, :meta_description, :meta_keywords,
               :tax_category_id,
-              :promotionable, :digital,
+              :promotionable,
               tags: [],
               category_ids: [],
               metadata: {},

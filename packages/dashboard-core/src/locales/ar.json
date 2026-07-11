@@ -258,6 +258,9 @@
       "meta_description": {
         "label": "وصف Meta"
       },
+      "meta_keywords": {
+        "label": "الكلمات المفتاحية Meta"
+      },
       "status": {
         "label": "الحالة"
       },

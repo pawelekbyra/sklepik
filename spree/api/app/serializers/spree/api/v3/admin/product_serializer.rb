@@ -12,9 +12,11 @@ module Spree
                    tax_category_id: [:string, nullable: true],
                    price: ['Price', nullable: true],
                    deleted_at: [:string, nullable: true],
-                   metadata: 'Record<string, unknown>'
+                   metadata: 'Record<string, unknown>',
+                   promotionable: :boolean
 
           attributes :status,
+                     :promotionable,
                      :metadata, deleted_at: :iso8601,
                      created_at: :iso8601, updated_at: :iso8601
 
