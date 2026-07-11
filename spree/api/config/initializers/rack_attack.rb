@@ -92,14 +92,25 @@ Rack::Attack.throttle('store/customers/create/ip', limit: 5, period: 1.hour) do 
 end
 
 # Respond to throttled requests with 429 Too Many Requests
+#
+# Body matches the API's canonical error envelope (Spree::Api::V3::ErrorHandler#render_error:
+# { error: { code:, message: } }) — @spree/sdk's SpreeError reads response.error.message/.code,
+# so a flat { error: "string" } body silently produces an empty error message in every consumer
+# (storefront, admin dashboard) instead of surfacing the rate-limit message.
 Rack::Attack.throttled_responder = lambda do |env|
   match_data = env['rack.attack.match_data']
-  now = Time.current
 
   headers = {
     'Content-Type' => 'application/json',
     'Retry-After' => match_data[:period].to_s
   }
 
-  [429, headers, [{ error: 'Too many requests. Please try again later.' }.to_json]]
+  body = {
+    error: {
+      code: 'rate_limited',
+      message: 'Too many requests. Please try again later.'
+    }
+  }
+
+  [429, headers, [body.to_json]]
 end

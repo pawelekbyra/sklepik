@@ -80,3 +80,29 @@ Wpływ na upstream Spree jest niski: zmiana dotyczy lokalnego domyślnego język
 ### Notatki
 
 Nie zmieniono Store API konsumowanego przez `KakaowySklepikFront`; adapter `lib/spree` nie wymaga zmian. Nie wprowadzono routingu `/[country]/[locale]`, bo dashboard w tym repo używa tras administracyjnych `/$storeId/...`, a storefront klienta jest oddzielony w repo `sklepikFront`.
+
+## 2026-07-11 — Poprawka kształtu JSON przy throttlingu (F16 rate limiting)
+
+### Status
+
+Wdrożona.
+
+### Kontekst
+
+F16 (2026-07-10) dodał `Rack::Attack` z throttlingiem na `auth/login`, `password_resets`, `customers#create`, newsletter subscribe (Store i Admin API). `throttled_responder` zwracał `{ error: "Too many requests..." }` — płaski string zamiast obiektu. Kanoniczna koperta błędu API v3 (`Spree::Api::V3::ErrorHandler#render_error`, `spree/api/app/controllers/concerns/spree/api/v3/error_handler.rb`) to `{ error: { code:, message: } }`, a `SpreeError` w `@spree/sdk` czyta dokładnie `response.error.message` i `response.error.code`. Zweryfikowano empirycznie (uruchamiając realny kod `SpreeError` z zainstalowanego `@spree/sdk` w `sklepikFront`): stary kształt dawał `message: ""` (pusty string), bo `"string".message` w JS to `undefined`. Efekt w produkcji: użytkownik trafiony rate-limitem (login, reset hasła, newsletter, signup) w storefroncie i w panelu admina widziałby pusty komunikat błędu zamiast informacji o throttlingu. Nigdy niewykryte w CI, bo `Rails.env.test?` wyłącza cały rate limiting w testach.
+
+### Decyzja
+
+`Rack::Attack.throttled_responder` w `spree/api/config/initializers/rack_attack.rb` zwraca teraz `{ error: { code: 'rate_limited', message: 'Too many requests. Please try again later.' } }` — zgodne z resztą kontraktu API v3.
+
+### Uzasadnienie
+
+To poprawka zgodności kontraktu błędów, nie zmiana logiki throttlingu (limity, okna czasowe, `Retry-After` header — bez zmian). Jedyna alternatywa (zignorować) zostawiałaby cichy, mylący UX dla realnych użytkowników trafionych limitem.
+
+### Wpływ na upstream
+
+Brak — `rack_attack.rb` to inicjalizator specyficzny dla tego forka, nie część core Spree.
+
+### Notatki
+
+Wpływa na `@spree/sdk` konsumowany przez `sklepikFront` (storefront) i `packages/dashboard` (panel) — oba parsują błędy przez `SpreeError`. Osobno zanotowane podczas tego samego audytu: formularz logowania panelu (`packages/dashboard/src/routes/login.tsx`) łapie każdy błąd generycznie jako "Invalid email or password" niezależnie od treści — nawet po tej poprawce admin trafiony throttlingiem zobaczy mylący komunikat. To osobny, wcześniejszy dług UI (nie regresja tej zmiany), do rozważenia osobno.
