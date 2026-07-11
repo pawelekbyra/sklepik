@@ -50,18 +50,26 @@ module Spree
       smart_subsample: true
     }.freeze
 
+    # Sizes that preserve the original aspect ratio (letterboxed, no crop) instead of
+    # being force-cropped to a square. These are the sizes customers actually inspect
+    # before buying (main gallery image, zoom) — cropping there hides seller-uploaded
+    # content unpredictably. Grid/listing thumbnails stay cropped-to-square for layout
+    # consistency, and og_image stays cropped since social platforms expect exact 1200x630.
+    UNCROPPED_VARIANT_SIZES = %i[large xlarge].freeze
+
     has_one_attached :attachment, service: Spree.public_storage_service_name do |attachable|
       # Note: Key order matters for variation digest matching.
       # Active Storage reorders keys alphabetically when calling variant(:name),
-      # so we must define them in alphabetical order: format, resize_to_fill, saver
+      # so we must define them in alphabetical order: format, resize_to_fill/resize_to_limit, saver
       #
       # IMPORTANT: Use string values (not symbols) for format because the variation key
       # is JSON-encoded in URLs. JSON converts symbols to strings, so "webp" != :webp
       # after round-tripping, which causes digest mismatches.
       Spree::Config.product_image_variant_sizes.each do |name, (width, height)|
+        resize_option = UNCROPPED_VARIANT_SIZES.include?(name) ? { resize_to_limit: [width, height] } : { resize_to_fill: [width, height] }
         attachable.variant name,
                            format: "webp",
-                           resize_to_fill: [width, height],
+                           **resize_option,
                            saver: WEBP_SAVER_OPTIONS,
                            preprocessed: true
       end
