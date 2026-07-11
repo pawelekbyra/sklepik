@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { STORAGE_STATE_FILE } from './e2e/paths'
 
 // Ports kept distinct from the dev defaults (Rails :3000, Vite :5173) so an
 // E2E run never clobbers a developer's running stack.
@@ -19,6 +20,9 @@ export default defineConfig({
 
   use: {
     baseURL: `http://localhost:${VITE_PORT}`,
+    // Written by global-setup: pins the admin UI language to English so the
+    // English-worded specs match (the panel otherwise boots in Polish).
+    storageState: STORAGE_STATE_FILE,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

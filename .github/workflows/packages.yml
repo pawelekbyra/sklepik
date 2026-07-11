@@ -100,6 +100,9 @@ jobs:
   dashboard-e2e:
     name: "Dashboard - E2E"
     runs-on: ubuntu-latest
+    # A healthy run is ~20 min; without this cap a suite-wide hang (e.g. every
+    # login timing out) burns GitHub's 6h default. Fail fast instead.
+    timeout-minutes: 30
     env:
       RAILS_ENV: test
       DB: sqlite3

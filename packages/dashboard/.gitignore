@@ -30,3 +30,4 @@ dist-ssr
 /playwright/.cache/
 /e2e/.credentials.json
 /e2e/.rails.pid
+/e2e/.storage-state.json

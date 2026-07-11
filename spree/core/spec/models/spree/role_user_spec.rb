@@ -10,7 +10,7 @@ describe Spree::RoleUser do
   let(:spree_user) { create(:user) }
 
   describe 'with different user types' do
-    let(:admin_user) { AdminUser.new(id: 99) }
+    let(:admin_user) { AdminUser.create!(email: "admin-#{SecureRandom.hex(8)}@example.com") }
 
     it 'can associate with different user types' do
       spree_role_user = described_class.create!(role: role, user: spree_user)

@@ -1,6 +1,6 @@
 class CreateSpreeApiKeys < ActiveRecord::Migration[7.2]
   def change
-    create_table :spree_api_keys do |t|
+    create_table :spree_api_keys, if_not_exists: true do |t|
       t.string :name, null: false
       t.string :key_type, null: false
       t.string :token, null: false

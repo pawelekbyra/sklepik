@@ -26,7 +26,7 @@ import {
   FIXTURE_PROMO_PRODUCT,
   FIXTURE_PROMO_TAXON,
 } from './helpers'
-import { CREDENTIALS_FILE, E2E_DIR, RAILS_PID_FILE } from './paths'
+import { CREDENTIALS_FILE, E2E_DIR, RAILS_PID_FILE, STORAGE_STATE_FILE } from './paths'
 
 const API_GEM_DIR = resolve(E2E_DIR, '../../../spree/api')
 const PORT = process.env.E2E_RAILS_PORT || '3010'
@@ -153,6 +153,25 @@ export default async function globalSetup() {
     throw new Error(`Failed to parse credentials from runner output:\n${result.stdout}`)
   }
   writeFileSync(CREDENTIALS_FILE, jsonMatch[0])
+
+  // Seed the admin UI language to English for every browser context. The panel
+  // boots in Polish by default (DEFAULT_ADMIN_LOCALE), rendering the login
+  // label as 'E-mail' — which the English-worded specs' getByLabel(/email/i)
+  // can't match, hanging the whole suite on login timeouts. `spree-admin-locale`
+  // is the localStorage key read by readStoredLocale() in dashboard-core.
+  const vitePort = process.env.E2E_VITE_PORT || '5174'
+  writeFileSync(
+    STORAGE_STATE_FILE,
+    JSON.stringify({
+      cookies: [],
+      origins: [
+        {
+          origin: `http://localhost:${vitePort}`,
+          localStorage: [{ name: 'spree-admin-locale', value: 'en' }],
+        },
+      ],
+    }),
+  )
 
   serverProcess = spawn(
     'bundle',

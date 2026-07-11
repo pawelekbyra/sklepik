@@ -1,6 +1,6 @@
 class CreateSpreePaymentSetupSessions < ActiveRecord::Migration[7.2]
   def change
-    create_table :spree_payment_setup_sessions do |t|
+    create_table :spree_payment_setup_sessions, if_not_exists: true do |t|
       t.references :customer, index: true
       t.references :payment_method, null: false, index: true
       t.references :payment_source, polymorphic: true, index: { name: 'idx_spree_pss_on_payment_source' }

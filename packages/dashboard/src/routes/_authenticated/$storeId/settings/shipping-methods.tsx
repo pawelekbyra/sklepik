@@ -46,7 +46,7 @@ const shippingMethodsSearchSchema = resourceSearchSchema.extend({
   new: z.coerce.boolean().optional(),
 })
 
-export const Route = createFileRoute('/_authenticated/$storeId/settings/shipping-methods' as any)({
+export const Route = createFileRoute('/_authenticated/$storeId/settings/shipping-methods')({
   validateSearch: shippingMethodsSearchSchema,
   component: ShippingMethodsPage,
 })
