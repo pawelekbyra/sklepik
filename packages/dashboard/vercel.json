@@ -1,10 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://141.253.103.172/api/:path*" },
+    { "source": "/api/:path*", "destination": "https://141-253-103-172.nip.io/api/:path*" },
     {
       "source": "/rails/:path*",
-      "destination": "https://141.253.103.172/rails/:path*"
+      "destination": "https://141-253-103-172.nip.io/rails/:path*"
     },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
