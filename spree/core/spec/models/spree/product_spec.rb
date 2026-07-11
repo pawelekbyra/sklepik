@@ -2277,7 +2277,8 @@ describe Spree::Product, type: :model do
     it 'publishes product.updated event when price changes' do
       # Events are disabled in spec_helper, so enable them for this test
       Spree::Events.enable do
-        expect_any_instance_of(Spree::Product).to receive(:publish_event).with('product.updated', anything).at_least(:once)
+        # Mock Spree::Events.publish to verify the event is fired
+        expect(Spree::Events).to receive(:publish).with('product.updated', anything, {}).at_least(:once)
         price.update!(amount: 99.99)
       end
     end
