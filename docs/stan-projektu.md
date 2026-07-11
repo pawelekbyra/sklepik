@@ -33,6 +33,13 @@ Uporządkowane wg wagi — szczegóły i plan naprawy w [`roadmap.md`](roadmap.m
 
 13. **Backend tests (RSpec core/api/emails) TYMCZASOWO wyłączone na pull_request'ach (P0, 2026-07-11):** testy brały 30-40 minut na shard (MySQL/PostgreSQL), co blokowało development velocity. Decyzja: wyłączyć testy na PR'ach (`.github/workflows/tests.yml` — warunek `if: github.event_name == 'push'`), uruchamiać tylko przy push'u do `main` przed release'em. **TODO przed production launch:** ponownie włączyć i upewnić się że suite przechodzi na zielono.
 
+14. **Operacyjne twardnienie produkcji jeszcze nie zrobione (P0/P1, zidentyfikowane 2026-07-11, nic z tego nie jest jeszcze naprawione):**
+    - **Brak backupu Postgresa** — `deployment-oracle.md` checklist ma to oznaczone jako "do zweryfikowania" od 2026-07-09, nadal nieobsłużone. Jeśli VPS padnie/zostanie skasowany, wszystkie dane sklepu (zamówienia, produkty, klienci) przepadają bezpowrotnie. **Priorytet P0** — musi być zrobione przed realną sprzedażą. Plan: cron `pg_dump` do zewnętrznego storage (R2/S3, nie na tym samym VPS), plus jeden przetestowany restore.
+    - **Sekrety (`RAILS_MASTER_KEY`, `SECRET_KEY_BASE`, hasła DB, tokeny R2) w plikach `.env`/`docker-compose.yml` na serwerze bez menedżera sekretów** — czytelne w plaintext dla każdego z dostępem do VPS. Nie jest to pilne przy jednym zaufanym operatorze, ale przed dodaniem kolejnych osób z SSH-dostępem trzeba to przenieść do Docker secrets albo Vault-podobnego rozwiązania.
+    - **Brak monitoringu/alertów** — nic nie powiadamia właściciela, gdy: kontenery padają (obecnie łata to watchdog z punktu 13a, ale to jest łatka na objaw, nie obserwowalność), API zwraca 500 masowo, dysk/RAM się kończy. Warto podłączyć choćby darmowy UptimeRobot/health-check na `/up` plus alert e-mail.
+    - **Klucz SSH do VPS jest współdzielony między operatorem a automatyzacją** (CI/CD lub monitoring logujący się z tego samego klucza dziesiątki/setki razy dziennie — zaobserwowane IP z zakresu `31.60.*.*` logujące się nawet 235 razy). Jeden skompromitowany klient tego klucza = pełny dostęp roota do produkcji. Zalecane: osobny klucz dla automatyzacji z ograniczonymi uprawnieniami (`authorized_keys` z `command=`/`no-port-forwarding`), rotacja kluczy co jakiś czas.
+    - **Domyślne hasło admina** — obecne dane logowania panelu (`admin@admin.pl` / hasło ustawione ręcznie 2026-07-11) są tymczasowe i muszą zostać zrotowane na losowe, silne hasło, zanim ktokolwiek poza właścicielem dostanie do nich dostęp.
+
 ## Czego jeszcze nie ma (przed startem sprzedaży)
 
 - System-wide production readiness audit (2026-07-08) ma werdykt `Not production-ready`; szczegóły i priorytety napraw są w `docs/audits/2026-07-08-system-wide-production-readiness-audit.md`.
