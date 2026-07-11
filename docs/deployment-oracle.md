@@ -185,7 +185,7 @@ Po utworzeniu instancji i potwierdzeniu publicznego IP:
 - ✅ webhooki do storefrontu działają,
 - ✅ Vercel `sklepik_front` ma poprawne `SPREE_API_URL` i `SPREE_PUBLISHABLE_KEY`,
 - ✅ `packages/dashboard/vercel.json` albo konfiguracja Vercel panelu wskazuje na nowy backend,
-- ⬜ jest plan backupu Postgresa — do zweryfikowania (patrz `oracle-setup-guide.md` Faza 5 dla przykładowego skryptu),
+- ✅ backup Postgresa: `/home/ubuntu/backup-postgres.sh`, cron codziennie 3:00 UTC, `pg_dumpall` gzip lokalnie + upload R2 (2026-07-11) — restore jeszcze nie przetestowany,
 - ✅ `docs/architektura.md` opisuje Oracle jako produkcyjny backend.
 
 **Nie zrobione trwale (znane ryzyko):** firewall hosta (`iptables`) nie ma trwałych reguł dla portów 80/443 (brak `iptables-persistent`, patrz sekcja SSL wyżej) — po reboocie serwera trzeba je dodać ponownie.
