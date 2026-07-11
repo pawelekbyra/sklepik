@@ -98,6 +98,38 @@ describe Spree::OptionValue, type: :model do
     end
   end
 
+  describe 'image validation' do
+    around do |example|
+      original = Spree::Config.max_image_upload_size
+      example.run
+      Spree::Config.max_image_upload_size = original
+    end
+
+    it 'rejects a non-image content type' do
+      option_value = build(:option_value)
+      option_value.image.attach(io: StringIO.new('not an image'), filename: 'not-an-image.txt', content_type: 'text/plain')
+
+      expect(option_value).not_to be_valid
+      expect(option_value.errors[:image]).to be_present
+    end
+
+    it 'rejects an image larger than the configured max upload size' do
+      Spree::Config.max_image_upload_size = 1
+      option_value = build(:option_value)
+      option_value.image.attach(io: File.new(Spree::Core::Engine.root + 'spec/fixtures' + 'thinking-cat.jpg'), filename: 'thinking-cat.jpg')
+
+      expect(option_value).not_to be_valid
+      expect(option_value.errors[:image]).to be_present
+    end
+
+    it 'accepts a valid image within the size limit' do
+      option_value = build(:option_value)
+      option_value.image.attach(io: File.new(Spree::Core::Engine.root + 'spec/fixtures' + 'thinking-cat.jpg'), filename: 'thinking-cat.jpg')
+
+      expect(option_value).to be_valid
+    end
+  end
+
   describe 'translations' do
     let!(:option_value) { create(:option_value, name: 'red', presentation: 'Red') }
 

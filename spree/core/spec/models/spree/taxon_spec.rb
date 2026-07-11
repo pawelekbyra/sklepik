@@ -38,6 +38,22 @@ describe Spree::Taxon, type: :model do
         expect(build(:taxon, taxonomy: taxonomy, parent: valid_parent).valid?).to eq true
       end
     end
+
+    describe 'image/square_image size validation' do
+      around do |example|
+        original = Spree::Config.max_image_upload_size
+        example.run
+        Spree::Config.max_image_upload_size = original
+      end
+
+      it 'rejects an image larger than the configured max upload size' do
+        Spree::Config.max_image_upload_size = 1
+        taxon.image.attach(io: File.new(Spree::Core::Engine.root + 'spec/fixtures' + 'thinking-cat.jpg'), filename: 'thinking-cat.jpg')
+
+        expect(taxon).not_to be_valid
+        expect(taxon.errors[:image]).to be_present
+      end
+    end
   end
 
   context 'Store ownership' do

@@ -53,6 +53,7 @@ module Spree
       preference :geocode_addresses, :boolean, default: true
       preference :images_save_from_url_job_attempts, :integer, default: 5
       preference :max_image_download_size, :integer, default: 20_971_520 # 20 MB in bytes
+      preference :max_image_upload_size, :integer, default: 10_485_760 # 10 MB in bytes — direct browser uploads (admin panel), not the URL-import job above
 
       # Preprocessed product image variant sizes at 2x retina resolution.
       # These variants are generated on upload to reduce runtime processing.

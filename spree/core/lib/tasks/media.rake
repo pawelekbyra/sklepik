@@ -43,5 +43,26 @@ namespace :spree do
 
       puts "Enqueued migration jobs for #{relation.count} products on the #{Spree.queues.images} queue."
     end
+
+    # Direct-upload flows (admin media picker) create an ActiveStorage::Blob
+    # as soon as the file lands, before the owning record (Asset, Store logo,
+    # Taxon image, ...) is saved — an abandoned form or failed save leaves the
+    # blob (and its R2 object) orphaned forever, since nothing purges it on
+    # its own. The age cutoff avoids racing an in-flight upload whose record
+    # hasn't been saved yet.
+    #
+    # ENV vars:
+    #   OLDER_THAN_HOURS — minimum blob age before it's eligible for purge (default: 24)
+    desc 'Purge Active Storage blobs that are not attached to any record (orphaned direct uploads)'
+    task purge_unattached_blobs: :environment do
+      older_than_hours = ENV.fetch('OLDER_THAN_HOURS', 24).to_i
+      cutoff = older_than_hours.hours.ago
+
+      relation = ActiveStorage::Blob.unattached.where(created_at: ...cutoff)
+      count = relation.count
+      relation.find_each(&:purge_later)
+
+      puts "Enqueued purge for #{count} unattached blob(s) older than #{older_than_hours}h."
+    end
   end
 end

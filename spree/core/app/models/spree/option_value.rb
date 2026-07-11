@@ -42,6 +42,8 @@ module Spree
 
     validates :color_code, format: { with: /\A#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?\z/, message: 'must be a valid hex color (e.g. #FF0000)' },
                            allow_blank: true
+    validates :image, content_type: Rails.application.config.active_storage.web_image_content_types,
+              size: { less_than: ->(_record) { Spree::Config.max_image_upload_size } }
 
     #
     # Scopes

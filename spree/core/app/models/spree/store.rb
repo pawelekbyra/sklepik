@@ -146,8 +146,10 @@ module Spree
        connection.column_exists?(:spree_stores, :new_order_notifications_email)
       validates :new_order_notifications_email, email: { allow_blank: true }
     end
-    validates :mailer_logo, content_type: Rails.application.config.active_storage.web_image_content_types
-    validates :logo, content_type: Rails.application.config.active_storage.web_image_content_types
+    validates :mailer_logo, content_type: Rails.application.config.active_storage.web_image_content_types,
+              size: { less_than: ->(_record) { Spree::Config.max_image_upload_size } }
+    validates :logo, content_type: Rails.application.config.active_storage.web_image_content_types,
+              size: { less_than: ->(_record) { Spree::Config.max_image_upload_size } }
 
     #
     # Attachments
