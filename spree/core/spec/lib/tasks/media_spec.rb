@@ -64,3 +64,69 @@ describe 'spree:media:migrate_master_images_to_product_media' do
     end
   end
 end
+
+describe 'spree:media:purge_unattached_blobs' do
+  subject { Rake::Task[task_name] }
+
+  let(:task_name) { 'spree:media:purge_unattached_blobs' }
+
+  before(:all) do
+    Rake::Task.define_task(:environment) unless Rake::Task.task_defined?(:environment)
+    # Guard against loading media.rake twice in the same process: the sibling
+    # describe block above already loads it, and `load` (unlike `require`)
+    # always re-executes the file, which would double up every task's action
+    # block and double-enqueue jobs.
+    load Spree::Core::Engine.root.join('lib', 'tasks', 'media.rake') unless Rake::Task.task_defined?('spree:media:purge_unattached_blobs')
+  end
+
+  before { subject.reenable }
+
+  def create_blob(created_at:)
+    blob = ActiveStorage::Blob.create_and_upload!(
+      io: File.new(Spree::Core::Engine.root + 'spec/fixtures' + 'thinking-cat.jpg'),
+      filename: 'thinking-cat.jpg'
+    )
+    blob.update_column(:created_at, created_at)
+    blob
+  end
+
+  context 'with an old unattached blob' do
+    let!(:old_blob) { create_blob(created_at: 48.hours.ago) }
+
+    it 'enqueues a purge job for it' do
+      expect { subject.invoke }.to have_enqueued_job(ActiveStorage::PurgeJob).with(old_blob)
+    end
+  end
+
+  context 'with a recently created unattached blob' do
+    let!(:recent_blob) { create_blob(created_at: 1.hour.ago) }
+
+    it 'does not purge it, since the owning record might still be mid-save' do
+      expect { subject.invoke }.not_to have_enqueued_job(ActiveStorage::PurgeJob).with(recent_blob)
+    end
+  end
+
+  context 'with an old blob that is attached to a record' do
+    let!(:asset) { create(:asset) }
+
+    before { asset.attachment.blob.update_column(:created_at, 48.hours.ago) }
+
+    it 'does not purge it' do
+      expect { subject.invoke }.not_to have_enqueued_job(ActiveStorage::PurgeJob).with(asset.attachment.blob)
+    end
+  end
+
+  context 'with a custom OLDER_THAN_HOURS' do
+    let!(:blob) { create_blob(created_at: 2.hours.ago) }
+
+    around do |example|
+      ENV['OLDER_THAN_HOURS'] = '1'
+      example.run
+      ENV.delete('OLDER_THAN_HOURS')
+    end
+
+    it 'respects the shorter cutoff' do
+      expect { subject.invoke }.to have_enqueued_job(ActiveStorage::PurgeJob).with(blob)
+    end
+  end
+end

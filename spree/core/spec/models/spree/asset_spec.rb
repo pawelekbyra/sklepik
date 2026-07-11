@@ -23,6 +23,27 @@ describe Spree::Asset, type: :model do
     end
   end
 
+  describe 'attachment size validation' do
+    around do |example|
+      original = Spree::Config.max_image_upload_size
+      example.run
+      Spree::Config.max_image_upload_size = original
+    end
+
+    it 'rejects images larger than the configured max upload size' do
+      Spree::Config.max_image_upload_size = 1
+      asset = build(:asset)
+      expect(asset).not_to be_valid
+      expect(asset.errors[:attachment]).to be_present
+    end
+
+    it 'accepts images within the configured max upload size' do
+      Spree::Config.max_image_upload_size = 10.megabytes
+      asset = build(:asset)
+      expect(asset).to be_valid
+    end
+  end
+
   describe '#product' do
     it 'returns the product when viewable is a Variant' do
       variant = create(:variant)

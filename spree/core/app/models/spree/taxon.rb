@@ -76,7 +76,8 @@ module Spree
       validates :meta_description
       validates :meta_title
     end
-    validates :image, :square_image, content_type: Rails.application.config.active_storage.web_image_content_types
+    validates :image, :square_image, content_type: Rails.application.config.active_storage.web_image_content_types,
+              size: { less_than: ->(_record) { Spree::Config.max_image_upload_size } }
 
     #
     # Callbacks

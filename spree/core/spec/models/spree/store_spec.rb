@@ -922,4 +922,41 @@ describe Spree::Store, type: :model, without_global_store: true do
       end
     end
   end
+
+  describe 'logo/mailer_logo size validation' do
+    subject { create(:store) }
+
+    around do |example|
+      original = Spree::Config.max_image_upload_size
+      example.run
+      Spree::Config.max_image_upload_size = original
+    end
+
+    def attach_fixture_logo(attachable)
+      attachable.attach(io: File.new(Spree::Core::Engine.root + 'spec/fixtures' + 'thinking-cat.jpg'), filename: 'thinking-cat.jpg')
+    end
+
+    it 'rejects a logo larger than the configured max upload size' do
+      Spree::Config.max_image_upload_size = 1
+      attach_fixture_logo(subject.logo)
+
+      expect(subject).not_to be_valid
+      expect(subject.errors[:logo]).to be_present
+    end
+
+    it 'rejects a mailer_logo larger than the configured max upload size' do
+      Spree::Config.max_image_upload_size = 1
+      attach_fixture_logo(subject.mailer_logo)
+
+      expect(subject).not_to be_valid
+      expect(subject.errors[:mailer_logo]).to be_present
+    end
+
+    it 'accepts a logo within the configured max upload size' do
+      Spree::Config.max_image_upload_size = 10.megabytes
+      attach_fixture_logo(subject.logo)
+
+      expect(subject).to be_valid
+    end
+  end
 end
