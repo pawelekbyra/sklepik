@@ -2275,10 +2275,11 @@ describe Spree::Product, type: :model do
     end
 
     it 'publishes product.updated event when price changes' do
-      # Verify that the after_touch callback wires through to event publication
-      expect_any_instance_of(Spree::Product).to receive(:publish_event).with('product.updated', anything).at_least(:once)
-
-      price.update!(amount: 99.99)
+      # Events are disabled in spec_helper, so enable them for this test
+      Spree::Events.enable do
+        expect_any_instance_of(Spree::Product).to receive(:publish_event).with('product.updated', anything).at_least(:once)
+        price.update!(amount: 99.99)
+      end
     end
   end
 end
