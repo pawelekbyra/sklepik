@@ -231,4 +231,42 @@ describe Spree::AdminUserMethods do
       expect(admin_user.spree_admin?(current_store)).to be(true)
     end
   end
+
+  describe '#admin_of_any_store?' do
+    subject { user.admin_of_any_store? }
+
+    context 'when the user has the admin role on the default store' do
+      let(:user) { admin_user }
+
+      it { is_expected.to be(true) }
+    end
+
+    context 'when the user has the admin role on a different store' do
+      let(:user) { create(:admin_user, :without_admin_role) }
+      let(:other_store) { create(:store) }
+
+      before { user.add_role('admin', other_store) }
+
+      it 'is true regardless of which store is current' do
+        is_expected.to be(true)
+      end
+    end
+
+    context 'when the user has a non-admin role only' do
+      let(:user) { create(:admin_user, :without_admin_role) }
+
+      before do
+        create(:role, name: 'custom_role')
+        user.add_role('custom_role', current_store)
+      end
+
+      it { is_expected.to be(false) }
+    end
+
+    context 'when the user has no roles at all' do
+      let(:user) { create(:admin_user, :without_admin_role) }
+
+      it { is_expected.to be(false) }
+    end
+  end
 end

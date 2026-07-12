@@ -14,6 +14,7 @@ Ostatnia aktualizacja: 2026-07-11 (incydent logowania do panelu zdiagnozowany i 
   **⚠️ Uwaga — to odejście od domyślnego zachowania Spree (upstream zawsze crop-to-fill, kwadrat, na wszystkich rozmiarach):** decyzja podjęta na życzenie właściciela po krótkiej dyskusji o standardach e-commerce, nie zweryfikowana jeszcze w praktyce na różnorodnych zdjęciach produktów (np. bardzo wąskie/panoramiczne kadry mogą wyglądać na małym letterboxowanym kwadracie gorzej niż przycięte). **Do zrobienia:** przetestować na kilku realnych zdjęciach o różnych proporcjach (pionowe, panoramiczne, prawie-kwadratowe) i potwierdzić, że letterbox (szare tło) na głównym zdjęciu faktycznie wygląda lepiej niż crop, zanim uzna się to za ostateczne rozwiązanie. Jeśli nie — łatwo cofnąć: przywrócić `resize_to_fill` w `UNCROPPED_VARIANT_SIZES`-owej gałęzi i `object-cover` w `MediaGallery.tsx`.
 - **Walidacja produktu:** endpoint `/api/v3/admin/products/:id/readiness` sprawdza status, publikację, ceny, stock, tłumaczenia; strona edycji produktu w dashboardzie pobiera go (`useProductReadiness`) i pokazuje banner ostrzegawczy z listą niespełnionych warunków, gdy `ready: false` — żadna z tych kontroli nie blokuje zapisu, to czysto informacyjne ostrzeżenie.
 - Testy storefrontu zielone (build + 89 testów vitest na moment rebrandingu).
+- **Wielosklepowość — panel admina, Faza 1 (2026-07-12, F25):** Admin API rozwiązuje `current_store` z nagłówka `X-Spree-Store-Id` zamiast zawsze zwracać jeden `default` store; `GET`/`POST /api/v3/admin/stores` listuje sklepy usera i tworzy nowe (twórca automatycznie dostaje rolę admina nowego sklepu). Panel: `StoreSwitcher` pokazuje realną listę sklepów usera, nowa strona `/$storeId/new-store` do zakładania kolejnego sklepu. Zero migracji bazy. Szczegóły i status weryfikacji: `docs/roadmap.md` F25, `docs/plans/multi-store-support.md`.
 
 ## Znane problemy (aktualne)
 
@@ -64,6 +65,7 @@ Uporządkowane wg wagi — szczegóły i plan naprawy w [`roadmap.md`](roadmap.m
 
 ## Czego jeszcze nie ma (przed startem sprzedaży)
 
+- **Wielosklepowość — RSpec backendu z tej sesji nieuruchomiony (F25, 2026-07-12):** kod jest gotowy (patrz "Co działa" niżej i `docs/roadmap.md` F25), ale nowe/zmienione specy (`stores_spec.rb`, `store_controller_spec.rb`, `admin_user_methods_spec.rb`) nie zostały uruchomione w tej sesji (brak zbudowanego `spree:test_app`) — zrobić przed mergem do `main`, razem z krokiem `rswag:specs:swaggerize` (nowy endpoint `/admin/stores` powinien trafić do `docs/api-reference/admin.yaml`).
 - System-wide production readiness audit (2026-07-08) ma werdykt `Not production-ready`; szczegóły i priorytety napraw są w `docs/audits/2026-07-08-system-wide-production-readiness-audit.md`.
 
 - Konfiguracja płatności (Stripe) i strony prawne — świadomie odłożone razem z F21, wymaga osobnej decyzji projektowej przed startem sprzedaży. F21 (Admin API/panel dla shipping methods/zones/tax rates) jest już **ukończona 2026-07-10**.

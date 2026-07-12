@@ -28,6 +28,19 @@ export interface StoreUpdateParams {
   logo?: string | null
 }
 
+export interface StoreCreateParams {
+  name: string
+  /** Unique slug-like identifier. Auto-generated from `name` when omitted. */
+  code?: string
+  url: string
+  /** Sender address used on all transactional emails (required by the model). */
+  mail_from_address: string
+  default_currency?: string
+  default_locale?: string
+  /** ISO country code — sets up the store's default market. */
+  default_country_iso?: string
+}
+
 export interface OptionValueParams {
   /** Present for existing rows. Omit to create a new value. */
   id?: string

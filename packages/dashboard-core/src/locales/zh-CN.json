@@ -544,6 +544,8 @@
         "update_failed": "无法保存您的语言偏好。请重试。"
       },
       "view_store": "查看店铺",
+      "your_stores": "您的店铺",
+      "new_store": "新建店铺",
       "documentation": "文档",
       "community": "社区",
       "contact_support": "联系支持",

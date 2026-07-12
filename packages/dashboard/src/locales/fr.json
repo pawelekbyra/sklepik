@@ -561,6 +561,29 @@
         "logo": {
           "label": "Logo de la boutique",
           "help": "PNG ou JPG avec un fond transparent. Affiché dans l'en-tête de la boutique."
+        },
+        "code": {
+          "label": "Code de la boutique",
+          "placeholder": "ex. deuxieme-boutique",
+          "help": "Identifiant interne unique. Généré automatiquement à partir du nom si laissé vide."
+        },
+        "url": {
+          "label": "Domaine",
+          "placeholder": "deuxieme-boutique.example.com",
+          "help": "Le domaine sur lequel la boutique de ce magasin sera servie."
+        },
+        "default_currency": {
+          "label": "Devise",
+          "placeholder": "ex. EUR"
+        },
+        "default_locale": {
+          "label": "Langue par défaut",
+          "placeholder": "ex. fr"
+        },
+        "default_country_iso": {
+          "label": "Pays par défaut",
+          "placeholder": "ex. FR",
+          "help": "Configure le marché par défaut de ce magasin."
         }
       },
       "webhook_endpoint": {
@@ -1626,6 +1649,12 @@
         "subtitle": "Gérez vos informations personnelles et votre langue d'administration.",
         "personal_details": "Informations personnelles",
         "load_failed_title": "Impossible de charger votre profil"
+      },
+      "new_store": {
+        "title": "Nouvelle boutique",
+        "subtitle": "Créez une autre boutique à gérer depuis ce tableau de bord.",
+        "success": "Boutique créée",
+        "error": "Échec de la création de la boutique"
       }
     },
     "invitation": {

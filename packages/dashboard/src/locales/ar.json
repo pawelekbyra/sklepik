@@ -609,6 +609,29 @@
         "logo": {
           "label": "شعار المتجر",
           "help": "PNG أو JPG بخلفية شفافة. يظهر في ترويسة المتجر."
+        },
+        "code": {
+          "label": "رمز المتجر",
+          "placeholder": "مثال: المتجر-الثاني",
+          "help": "معرف داخلي فريد. يُنشأ تلقائيًا من الاسم إذا تُرك فارغًا."
+        },
+        "url": {
+          "label": "النطاق",
+          "placeholder": "second-shop.example.com",
+          "help": "النطاق الذي سيُقدَّم من خلاله واجهة هذا المتجر."
+        },
+        "default_currency": {
+          "label": "العملة",
+          "placeholder": "مثال: USD"
+        },
+        "default_locale": {
+          "label": "اللغة الافتراضية",
+          "placeholder": "مثال: ar"
+        },
+        "default_country_iso": {
+          "label": "الدولة الافتراضية",
+          "placeholder": "مثال: SA",
+          "help": "يحدد السوق الافتراضي لهذا المتجر."
         }
       },
       "webhook_endpoint": {
@@ -1674,6 +1697,12 @@
         "subtitle": "إدارة بياناتك الشخصية ولغة الإدارة.",
         "personal_details": "البيانات الشخصية",
         "load_failed_title": "تعذر تحميل ملفك الشخصي"
+      },
+      "new_store": {
+        "title": "متجر جديد",
+        "subtitle": "أنشئ متجرًا آخر لإدارته من لوحة التحكم هذه.",
+        "success": "تم إنشاء المتجر",
+        "error": "فشل إنشاء المتجر"
       }
     },
     "invitation": {

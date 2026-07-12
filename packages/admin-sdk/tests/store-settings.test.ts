@@ -41,6 +41,48 @@ describe('store', () => {
   })
 })
 
+describe('stores', () => {
+  describe('list', () => {
+    it('GETs /stores and unwraps the data envelope', async () => {
+      server.use(
+        http.get(`${API_PREFIX}/stores`, () => HttpResponse.json({ data: [sampleStore] })),
+      )
+
+      const res = await createTestClient().stores.list()
+
+      expect(res).toEqual([sampleStore])
+    })
+  })
+
+  describe('create', () => {
+    it('POSTs /stores with the params verbatim', async () => {
+      let body: Record<string, unknown> | null = null
+      server.use(
+        http.post(`${API_PREFIX}/stores`, async ({ request }) => {
+          body = (await request.json()) as Record<string, unknown>
+          return HttpResponse.json(
+            { ...sampleStore, id: 'store_new1', name: 'Second Shop' },
+            { status: 201 },
+          )
+        }),
+      )
+
+      const res = await createTestClient().stores.create({
+        name: 'Second Shop',
+        url: 'second-shop.example.com',
+        mail_from_address: 'orders@second-shop.example.com',
+      })
+
+      expect(body).toEqual({
+        name: 'Second Shop',
+        url: 'second-shop.example.com',
+        mail_from_address: 'orders@second-shop.example.com',
+      })
+      expect(res.id).toBe('store_new1')
+    })
+  })
+})
+
 describe('me', () => {
   describe('get', () => {
     it('GETs /me and returns the user + permissions', async () => {

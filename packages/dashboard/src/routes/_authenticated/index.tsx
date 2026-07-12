@@ -11,10 +11,15 @@ function IndexRedirect() {
 
   useEffect(() => {
     let cancelled = false
-    adminClient.store
-      .get()
-      .then((store) => {
-        if (!cancelled) navigate({ to: '/$storeId', params: { storeId: store.id }, replace: true })
+    // Lists the stores this admin actually belongs to (rather than the
+    // singular `/store`, which — before any store is selected — resolves to
+    // whichever store the backend treats as the host-based default, not
+    // necessarily one this admin has a role on) and lands on the first one.
+    adminClient.stores
+      .list()
+      .then((stores) => {
+        const storeId = stores[0]?.id ?? 'default'
+        if (!cancelled) navigate({ to: '/$storeId', params: { storeId }, replace: true })
       })
       .catch(() => {
         if (!cancelled) navigate({ to: '/$storeId', params: { storeId: 'default' }, replace: true })

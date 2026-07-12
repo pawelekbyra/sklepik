@@ -55,6 +55,36 @@ Dodatkowe informacje, linki do PR, issue lub commitów.
 
 ## Log decyzji
 
+## 2026-07-12 — Admin API rozwiązuje `current_store` z nagłówka, nie z hosta (wielosklepowość, Faza 1)
+
+### Status
+
+Wdrożona.
+
+### Kontekst
+
+Właściciel chce zarządzać kilkoma sklepami z jednego panelu (pełny plan: `docs/plans/multi-store-support.md`). Fundament pod to już istniał (`Spree::RoleUser` wiąże usera ze store'em, `Spree::Ability` liczy role per store), ale `current_store` dla **każdego** requestu Admin API (tak samo jak dla storefrontu klienta) rozwiązywał się przez `Spree::Stores::FindDefault` po `request.env['SERVER_NAME']` — finder, który w tym forku **ignoruje** hosta i zawsze zwraca jedyny `default: true` store. Dashboard od dawna wysyłał nagłówek `X-Spree-Store-Id` (`admin-sdk`'s `setStore()`), ale backend go nie czytał.
+
+### Decyzja
+
+`Spree::Api::V3::Admin::BaseController` dostał `prepend_before_action :resolve_store_from_header`, który — gdy nagłówek `X-Spree-Store-Id` jest obecny — wypełnia `@current_store` (ivar, który `current_store` z `ControllerHelpers::Store` memoizuje przez `||=`) sklepem znalezionym po prefixed ID; brak dopasowania → jawny `ActiveRecord::RecordNotFound` (404). Storefront (Store API, klient końcowy) **bez zmian** — dalej rozwiązuje store po hoście, bo to osobna publiczność (jedna domena na sklep).
+
+Świadomie **nie nadpisano samej metody `current_store`** (co byłoby prostsze) — istniejący pakiet speców Admin API stubuje ją wprost (`allow_any_instance_of(Spree::Api::V3::BaseController).to receive(:current_store)`, `spree/api/lib/spree/api/testing_support/v3/base.rb`), a metoda zdefiniowana w podklasie zawsze wygrywa z `any_instance_of` na klasie nadrzędnej w Ruby — nadpisanie po cichu wyłączyłoby ten stub w każdym istniejącym teście Admin API. Wypełnienie ivara przez `before_action` omija ten problem: stub (gdy aktywny) całkowicie zastępuje metodę i ignoruje ivar, więc istniejące testy działają bez zmian; w kodzie produkcyjnym (bez stubu) `||=` w oryginalnej metodzie po prostu nie nadpisuje już ustawionej wartości.
+
+Dodatkowo: `Spree::AdminUserMethods#admin_of_any_store?` (nowa metoda) gate'uje `POST /api/v3/admin/stores` — kto może założyć nowy sklep. Zamiast nowej flagi "super-admin", warunek to "ma już rolę admina na choć jednym sklepie" — świadomie zaprojektowane pod przyszłą Fazę 3 (self-service): ten sam endpoint zostaje, zmienia się tylko reguła autoryzacji.
+
+### Uzasadnienie
+
+Zero migracji bazy — cały model danych (store_id na RoleUser, role per store w `Spree::Ability`) już to obsługiwał; brakowało tylko poprawnego rozwiązywania "który to sklep" po stronie admina. Alternatywa (osobna baza/instancja per sklep) odrzucona jako niepotrzebnie kosztowna dla tej skali — patrz plan.
+
+### Wpływ na upstream
+
+Zmiana lokalna dla tego forka (`Admin::BaseController`, nowy `StoresController`) — nie modyfikuje żadnego upstreamowego kontraktu Store API. Storefront (`sklepikFront`) niedotknięty: konsumuje wyłącznie Store API, które nadal rozwiązuje się po hoście, bez zmian.
+
+### Notatki
+
+Nowe endpointy: `GET`/`POST /api/v3/admin/stores` (plural — obok istniejącego singularnego `resource :store`). RSpec napisane, ale nieuruchomione lokalnie w tej sesji (brak zbudowanego test app) — patrz `docs/roadmap.md` F25 i `docs/stan-projektu.md`.
+
 ## 2026-07-06 — Polski jako domyślny język panelu administracyjnego
 
 ### Status

@@ -48,6 +48,14 @@ module Spree
       Spree::Store.current.users.where.not(id: id).exists?
     end
 
+    # Gates creation of additional stores (Admin::StoresController#create) until
+    # self-service signup exists: anyone already trusted with the admin role on
+    # one store may bootstrap another one.
+    # @return [Boolean]
+    def admin_of_any_store?
+      role_users.joins(:role).where(Spree::Role.table_name => { name: Spree::Role::ADMIN_ROLE }).exists?
+    end
+
     # Returns the full name of the user
     # @return [String]
     def full_name

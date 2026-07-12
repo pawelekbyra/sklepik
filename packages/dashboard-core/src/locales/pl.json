@@ -544,6 +544,8 @@
         "update_failed": "Nie udało się zapisać preferencji języka. Spróbuj ponownie."
       },
       "view_store": "Zobacz sklep",
+      "your_stores": "Twoje sklepy",
+      "new_store": "Nowy sklep",
       "log_out": "Wyloguj się"
     },
     "custom_field_definitions": {

@@ -156,6 +156,7 @@ import type {
   StockLocationCreateParams,
   StockLocationUpdateParams,
   StockTransferCreateParams,
+  StoreCreateParams,
   StoreCreditApplyParams,
   StoreUpdateParams,
   TaxCategoryCreateParams,
@@ -482,6 +483,19 @@ export class AdminClient {
 
     update: (params: StoreUpdateParams, options?: RequestOptions): Promise<Store> =>
       this.request<Store>('PATCH', '/store', { ...options, body: params }),
+  }
+
+  /**
+   * Cross-store: which stores this admin belongs to, and creating new ones.
+   * Unlike every other resource, these two calls aren't scoped by `setStore()`
+   * — `list()` is how the dashboard discovers stores *before* one is selected.
+   */
+  readonly stores = {
+    list: (options?: RequestOptions): Promise<Store[]> =>
+      this.request<{ data: Store[] }>('GET', '/stores', options).then((r) => r.data),
+
+    create: (params: StoreCreateParams, options?: RequestOptions): Promise<Store> =>
+      this.request<Store>('POST', '/stores', { ...options, body: params }),
   }
 
   /** The locales a merchant can translate content into for the current store. */

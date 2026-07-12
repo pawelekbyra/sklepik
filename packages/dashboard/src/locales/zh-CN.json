@@ -609,6 +609,29 @@
         "logo": {
           "label": "店铺徽标",
           "help": "采用透明背景的 PNG 或 JPG 图片。显示在店铺页眉中。"
+        },
+        "code": {
+          "label": "店铺代码",
+          "placeholder": "例如：second-shop",
+          "help": "唯一的内部标识符。留空时将根据名称自动生成。"
+        },
+        "url": {
+          "label": "域名",
+          "placeholder": "second-shop.example.com",
+          "help": "该店铺前台所使用的域名。"
+        },
+        "default_currency": {
+          "label": "货币",
+          "placeholder": "例如：USD"
+        },
+        "default_locale": {
+          "label": "默认语言",
+          "placeholder": "例如：zh-CN"
+        },
+        "default_country_iso": {
+          "label": "默认国家",
+          "placeholder": "例如：CN",
+          "help": "设置该店铺的默认市场。"
         }
       },
       "webhook_endpoint": {
@@ -1674,6 +1697,12 @@
         "subtitle": "管理您的个人详细信息和管理后台语言。",
         "personal_details": "个人详细信息",
         "load_failed_title": "无法加载您的个人资料"
+      },
+      "new_store": {
+        "title": "新建店铺",
+        "subtitle": "创建另一个由此管理面板管理的店铺。",
+        "success": "店铺已创建",
+        "error": "创建店铺失败"
       }
     },
     "invitation": {
