@@ -199,4 +199,61 @@ RSpec.describe Spree::Api::V3::Admin::StoreController, type: :controller do
       end
     end
   end
+
+  # Deliberately does NOT use `include_context 'API v3 Admin authenticated'`:
+  # that context stubs `current_store` directly
+  # (`allow_any_instance_of(Spree::Api::V3::BaseController).to
+  # receive(:current_store)`), which would hide the resolution logic under
+  # test here. Builds its own JWT instead.
+  describe 'multi-store resolution via X-Spree-Store-Id' do
+    let(:store_a) { @default_store }
+    let(:store_b) { create(:store) }
+    let(:admin) { create(:admin_user, :without_admin_role) }
+    let(:token) do
+      Spree::Api::V3::TestingSupport.generate_jwt(admin, audience: Spree::Api::V3::JwtAuthentication::JWT_AUDIENCE_ADMIN)
+    end
+
+    before do
+      admin.add_role('admin', store_b)
+      request.headers['Authorization'] = "Bearer #{token}"
+    end
+
+    context 'when the header selects a store the admin belongs to' do
+      before { request.headers['X-Spree-Store-Id'] = store_b.prefixed_id }
+
+      it 'resolves current_store to the selected store, not the host-based default' do
+        get :show, as: :json
+        expect(response).to have_http_status(:ok)
+        expect(json_response['id']).to eq(store_b.prefixed_id)
+      end
+    end
+
+    context 'when the header selects a store the admin does not belong to' do
+      before { request.headers['X-Spree-Store-Id'] = store_a.prefixed_id }
+
+      it 'returns forbidden instead of leaking the other store' do
+        get :show, as: :json
+        expect(response).to have_http_status(:forbidden)
+      end
+    end
+
+    context 'when the header is a prefixed id that does not exist' do
+      before { request.headers['X-Spree-Store-Id'] = 'store_doesnotexist' }
+
+      it 'returns not found instead of silently falling back to the default store' do
+        get :show, as: :json
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    context 'without the header' do
+      before { admin.add_role('admin', store_a) }
+
+      it 'falls back to host-based resolution (existing single-store behavior)' do
+        get :show, as: :json
+        expect(response).to have_http_status(:ok)
+        expect(json_response['id']).to eq(store_a.prefixed_id)
+      end
+    end
+  end
 end

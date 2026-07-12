@@ -5,16 +5,31 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
   SidebarMenu,
   SidebarMenuItem,
   Skeleton,
   useSidebar,
 } from '@spree/dashboard-ui'
-import { ChevronsUpDownIcon, ExternalLinkIcon } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { ChevronsUpDownIcon, ExternalLinkIcon, PlusIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useStores } from '../hooks/use-stores'
 import { getInitials } from '../lib/formatters'
 import { useStore } from '../providers/store-provider'
+
+// Plain `string` (not a template-literal type) so `Link`'s typed `to` prop
+// accepts it the same way it accepts `NavItem.url` elsewhere in this
+// package — dashboard-core has no route tree of its own to validate against.
+function storeHref(storeId: string): string {
+  return `/${storeId}`
+}
+
+function newStoreHref(storeId: string): string {
+  return `/${storeId}/new-store`
+}
 
 export function StoreSwitcher() {
   const { t } = useTranslation()
@@ -22,6 +37,7 @@ export function StoreSwitcher() {
   const isCollapsed = state === 'collapsed'
 
   const { store, storeId, isLoading } = useStore()
+  const { data: stores } = useStores()
 
   if (isLoading) return <Skeleton className="h-header-height w-full rounded-xl" />
 
@@ -56,9 +72,38 @@ export function StoreSwitcher() {
             align="start"
             sideOffset={8}
           >
+            {stores && stores.length > 1 && (
+              <>
+                <DropdownMenuLabel>{t('admin.account.your_stores')}</DropdownMenuLabel>
+                {stores.map((s) => (
+                  <DropdownMenuItem key={s.id} asChild>
+                    <Link
+                      to={storeHref(s.id)}
+                      className="no-underline"
+                      aria-current={s.id === storeId}
+                    >
+                      <Avatar className="size-5">
+                        {s.logo_url && <AvatarImage src={s.logo_url} />}
+                        <AvatarFallback className="text-[10px]">
+                          {getInitials(s.name, s.id)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="truncate">{s.name}</span>
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem>
               <ExternalLinkIcon className="size-4" />
               {t('admin.account.view_store')}
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to={newStoreHref(storeId)} className="no-underline">
+                <PlusIcon className="size-4" />
+                {t('admin.account.new_store')}
+              </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

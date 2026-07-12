@@ -560,6 +560,29 @@
         "logo": {
           "label": "Logo sklepu",
           "help": "PNG lub JPG z przezroczystym tłem. Wyświetlane w nagłówku sklepu."
+        },
+        "code": {
+          "label": "Kod sklepu",
+          "placeholder": "np. drugi-sklep",
+          "help": "Unikalny identyfikator wewnętrzny. Generowany automatycznie z nazwy, jeśli pozostawiony pusty."
+        },
+        "url": {
+          "label": "Domena",
+          "placeholder": "drugi-sklep.example.com",
+          "help": "Domena, pod którą będzie działał storefront tego sklepu."
+        },
+        "default_currency": {
+          "label": "Waluta",
+          "placeholder": "np. PLN"
+        },
+        "default_locale": {
+          "label": "Domyślny język",
+          "placeholder": "np. pl"
+        },
+        "default_country_iso": {
+          "label": "Domyślny kraj",
+          "placeholder": "np. PL",
+          "help": "Ustawia domyślny rynek tego sklepu."
         }
       },
       "webhook_endpoint": {
@@ -1645,6 +1668,12 @@
         "subtitle": "Zarządzaj swoimi danymi osobowymi i językiem administratora.",
         "personal_details": "Dane osobowe",
         "load_failed_title": "Nie udało się załadować Twojego profilu"
+      },
+      "new_store": {
+        "title": "Nowy sklep",
+        "subtitle": "Załóż kolejny sklep zarządzany z tego panelu.",
+        "success": "Sklep utworzony",
+        "error": "Nie udało się utworzyć sklepu"
       }
     },
     "invitation": {

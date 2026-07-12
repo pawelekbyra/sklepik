@@ -561,6 +561,29 @@
         "logo": {
           "label": "Shop-Logo",
           "help": "PNG oder JPG mit transparentem Hintergrund. Wird in der Kopfzeile des Shops angezeigt."
+        },
+        "code": {
+          "label": "Shop-Code",
+          "placeholder": "z. B. zweiter-shop",
+          "help": "Eindeutige interne Kennung. Wird automatisch aus dem Namen generiert, wenn leer gelassen."
+        },
+        "url": {
+          "label": "Domain",
+          "placeholder": "zweiter-shop.example.com",
+          "help": "Die Domain, unter der der Storefront dieses Shops bereitgestellt wird."
+        },
+        "default_currency": {
+          "label": "Währung",
+          "placeholder": "z. B. EUR"
+        },
+        "default_locale": {
+          "label": "Standardsprache",
+          "placeholder": "z. B. de"
+        },
+        "default_country_iso": {
+          "label": "Standardland",
+          "placeholder": "z. B. DE",
+          "help": "Richtet den Standardmarkt dieses Shops ein."
         }
       },
       "webhook_endpoint": {
@@ -1626,6 +1649,12 @@
         "subtitle": "Verwalten Sie Ihre persönlichen Daten und Ihre Admin-Sprache.",
         "personal_details": "Persönliche Daten",
         "load_failed_title": "Ihr Profil konnte nicht geladen werden"
+      },
+      "new_store": {
+        "title": "Neuer Shop",
+        "subtitle": "Erstellen Sie einen weiteren Shop, der von diesem Dashboard aus verwaltet wird.",
+        "success": "Shop erstellt",
+        "error": "Shop konnte nicht erstellt werden"
       }
     },
     "invitation": {

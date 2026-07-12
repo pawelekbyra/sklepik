@@ -544,6 +544,8 @@
         "update_failed": "تعذّر حفظ تفضيل اللغة. يرجى المحاولة مجددًا."
       },
       "view_store": "عرض المتجر",
+      "your_stores": "متاجرك",
+      "new_store": "متجر جديد",
       "documentation": "التوثيق",
       "community": "المجتمع",
       "contact_support": "الاتصال بالدعم",

@@ -544,6 +544,8 @@
         "update_failed": "Could not save your language preference. Please try again."
       },
       "view_store": "View store",
+      "your_stores": "Your stores",
+      "new_store": "New store",
       "log_out": "Log out"
     },
     "custom_field_definitions": {

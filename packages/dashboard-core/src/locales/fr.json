@@ -544,6 +544,8 @@
         "update_failed": "Impossible d’enregistrer votre préférence de langue. Veuillez réessayer."
       },
       "view_store": "Voir la boutique",
+      "your_stores": "Vos boutiques",
+      "new_store": "Nouvelle boutique",
       "documentation": "Documentation",
       "community": "Communauté",
       "contact_support": "Contacter le support",

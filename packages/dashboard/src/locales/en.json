@@ -611,6 +611,29 @@
         "logo": {
           "label": "Store logo",
           "help": "PNG or JPG with a transparent background. Shown in the storefront header."
+        },
+        "code": {
+          "label": "Store code",
+          "placeholder": "e.g. second-shop",
+          "help": "Unique internal identifier. Auto-generated from the name if left blank."
+        },
+        "url": {
+          "label": "Domain",
+          "placeholder": "second-shop.example.com",
+          "help": "The domain this store's storefront will be served from."
+        },
+        "default_currency": {
+          "label": "Currency",
+          "placeholder": "e.g. USD"
+        },
+        "default_locale": {
+          "label": "Default locale",
+          "placeholder": "e.g. en"
+        },
+        "default_country_iso": {
+          "label": "Default country",
+          "placeholder": "e.g. US",
+          "help": "Sets up this store's default market."
         }
       },
       "webhook_endpoint": {
@@ -1673,6 +1696,12 @@
         "subtitle": "Manage your personal details and admin language.",
         "personal_details": "Personal Details",
         "load_failed_title": "Couldn't load your profile"
+      },
+      "new_store": {
+        "title": "New store",
+        "subtitle": "Create another store to manage from this dashboard.",
+        "success": "Store created",
+        "error": "Failed to create store"
       }
     },
     "invitation": {
