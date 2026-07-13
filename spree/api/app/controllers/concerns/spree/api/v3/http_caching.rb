@@ -22,10 +22,13 @@ module Spree
           current_user.nil?
         end
 
-        # Set Vary headers to ensure proper CDN caching by currency/locale
+        # Set Vary headers to ensure proper CDN caching by currency/locale and,
+        # critically, by store: the publishable API key is store-specific, so
+        # varying on it stops an intermediary cache that ignores Host from
+        # serving one store's response to another.
         def set_vary_headers
           if guest_user?
-            response.headers['Vary'] = 'Accept, x-spree-currency, x-spree-locale'
+            response.headers['Vary'] = 'Accept, x-spree-currency, x-spree-locale, x-spree-api-key'
           else
             response.headers['Cache-Control'] = 'private, no-store'
           end
@@ -84,6 +87,11 @@ module Spree
                               end
 
           parts = [
+            # Scope the cache key to the store so two stores that happen to
+            # share updated_at/count/params/currency/locale never collide on
+            # the same ETag — a shared CDN/proxy must not serve one store's
+            # cached collection to another.
+            current_store&.id,
             latest_updated_at,
             @pagy&.count || collection.size,
             params[:expand],

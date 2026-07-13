@@ -150,7 +150,9 @@ _Zweryfikowane lokalnie (Postgres, `spree/api/spec/dummy`, ta sesja):_ `store_co
 
 Dynamiczne rozpoznawanie sklepu po domenie w storefroncie to Faza 2, samoobsługa zewnętrznych użytkowników (płatność, automatyczny provisioning) to Faza 3 — obie świadomie odłożone, opisane jako Open Questions w planie.
 
-**Decyzja 2026-07-13 (poza aktywną roadmapą, jeszcze nierozpoczęta):** model docelowy dla Fazy 3 (niezależne sklepy) to "Store Factory" — repozytorium + projekt Vercel per sklep, nie jeden wspólny storefront z warstwą kompozycji danych. Pełny plan: [`docs/plans/store-factory.md`](plans/store-factory.md). Realizacja (nawet Etap 0) czeka na zamknięcie blokerów sprzedażowych Fazy 2 poniżej.
+**Decyzja 2026-07-13 (poza aktywną roadmapą):** model docelowy dla Fazy 3 (niezależne sklepy) to "Store Factory" — repozytorium + projekt Vercel per sklep, nie jeden wspólny storefront z warstwą kompozycji danych. Pełny plan: [`docs/plans/store-factory.md`](plans/store-factory.md). Konta klientów: **osobne per sklep** (decyzja właściciela) — osobny plan [`docs/plans/per-store-customer-accounts.md`](plans/per-store-customer-accounts.md).
+
+**Etap 0 Store Factory — częściowo zrobiony (2026-07-13, gałąź `claude/plan-review-improvement-cpj6fw`, kod napisany, testy NIEURUCHOMIONE lokalnie):** naprawa fundamentu wielosklepowości backendu, bo to już dziś istniejący dług (nie tylko przygotowanie na przyszłość). Zrobione: `FindDefault` po hoście, cache per sklep, transakcja w `StoresController#create`, backend synchronizacji cen EUR (z cronu frontu), `for_store` ostry brzeg udokumentowany. Pozostaje: pełny integracyjny test dwóch tenantów, usunięcie cronu z `sklepikFront`, drobiazgi 422/swaggerize. Status per punkt: `docs/plans/store-factory.md` (Etap 0). Reszta Store Factory (Etapy 1-4) nadal czeka na blokery sprzedażowe Fazy 2.
 
 ## Faza 2 — Kakao MVP
 

@@ -15,10 +15,10 @@ RSpec.describe Spree::Api::V3::Store::ProductsController, type: :controller do
   describe 'Spree::Api::V3::HttpCaching' do
     describe 'Vary headers' do
       context 'for guest users' do
-        it 'sets Vary header for CDN caching' do
+        it 'sets Vary header for CDN caching, including the store-specific api key' do
           get :index
 
-          expect(response.headers['Vary']).to eq('Accept, x-spree-currency, x-spree-locale')
+          expect(response.headers['Vary']).to eq('Accept, x-spree-currency, x-spree-locale, x-spree-api-key')
         end
       end
 
@@ -135,6 +135,21 @@ RSpec.describe Spree::Api::V3::Store::ProductsController, type: :controller do
           eur_etag = response.headers['ETag']
 
           expect(eur_etag).not_to eq(original_etag)
+        end
+
+        it 'scopes the ETag to the store so two stores never collide on the same cache key' do
+          get :index
+          store_a_etag = response.headers['ETag']
+
+          other_store = create(:store, url: 'second-store.example.com', default: false)
+          other_key = create(:api_key, :publishable, store: other_store)
+          allow_any_instance_of(Spree::Api::V3::BaseController).to receive(:current_store).and_return(other_store)
+          request.headers['X-Spree-Api-Key'] = other_key.token
+
+          get :index
+          store_b_etag = response.headers['ETag']
+
+          expect(store_b_etag).not_to eq(store_a_etag)
         end
       end
 

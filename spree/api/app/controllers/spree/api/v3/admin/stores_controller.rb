@@ -26,12 +26,17 @@ module Spree
             store = Spree::Store.new(permitted_params)
             store.code = unique_code(store.name) if store.code.blank?
 
-            if store.save
+            # Store creation and owner assignment must be atomic: `add_user`
+            # can raise (`find_or_create_by!`), and a store persisted without
+            # its creating admin would be orphaned — nobody could enter it.
+            ActiveRecord::Base.transaction do
+              store.save!
               store.add_user(current_user)
-              render json: serialize_resource(store), status: :created
-            else
-              render_validation_error(store.errors)
             end
+
+            render json: serialize_resource(store), status: :created
+          rescue ActiveRecord::RecordInvalid => e
+            render_validation_error(e.record.errors)
           end
 
           private

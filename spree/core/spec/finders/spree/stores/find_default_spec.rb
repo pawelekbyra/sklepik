@@ -19,10 +19,31 @@ module Spree
       it { subject; expect(Spree::Current.store).to eq(store) }
     end
 
-    context 'with url argument (ignored)' do
+    context 'when the url host matches a store' do
       let(:url) { 'another.com' }
 
-      it 'returns the default store regardless of url' do
+      it 'resolves that store, not the default one' do
+        expect(subject).to eq(store_2)
+      end
+
+      it 'sets it as the current store' do
+        subject
+        expect(Spree::Current.store).to eq(store_2)
+      end
+    end
+
+    context 'when the url has a scheme, port or path' do
+      let(:url) { 'https://another.com:443/products' }
+
+      it 'normalizes the host and still matches the store' do
+        expect(subject).to eq(store_2)
+      end
+    end
+
+    context 'when the url host matches no store' do
+      let(:url) { 'unmatched-host.example' }
+
+      it 'falls back to the default store' do
         expect(subject).to eq(store)
       end
     end

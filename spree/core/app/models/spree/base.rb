@@ -31,6 +31,17 @@ class Spree::Base < ApplicationRecord
     false
   end
 
+  # Scopes a model to a store via the store's plural association
+  # (e.g. +store.products+). When the model has no such association it
+  # returns the whole relation unscoped.
+  #
+  # SHARP EDGE (multi-store): the unscoped fallback is silent. Some models
+  # rely on it deliberately (users are global by design — see
+  # +Spree::UserMethods.for_store+), but a NEW store-owned model that simply
+  # forgot to declare its +has_many+ on +Spree::Store+ will leak every
+  # store's rows here with no error. When adding a tenant-scoped model, wire
+  # its store association (and prefer an explicit override that raises over
+  # relying on this fallback). Tracked in docs/plans/store-factory.md (Etap 0).
   def self.for_store(store)
     plural_model_name = model_name.plural.gsub(/spree_/, '').to_sym
 
