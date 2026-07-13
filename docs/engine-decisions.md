@@ -55,6 +55,34 @@ Dodatkowe informacje, linki do PR, issue lub commitów.
 
 ## Log decyzji
 
+## 2026-07-13 — `RoleUser#store` derywowany z `resource`, gdy resource jest sklepem
+
+### Status
+
+Wdrożona.
+
+### Kontekst
+
+Po zmergowaniu Fazy 1 wielosklepowości (poprzedni wpis niżej) CI faktycznie uruchomił pełny RSpec (wcześniej tylko napisany, nieuruchomiony) i poczerwieniał. Zamiast zgadywać z kodu, postawiono lokalne środowisko (Postgres + `bundle install` + `rake test_app`) i odtworzono błąd empirycznie. Po odsłonięciu maskowanego przez zbyt szeroki stub testu (patrz commit `cc4709f`) ujawnił się realny bug: `Spree::RoleUser` ma dwie kolumny wskazujące na sklep — polimorficzny `resource` (przez `Spree::SingleStoreResource#ensure_store`) i bezpośredni `store` (FK, używany przez `AdminAuthentication#require_store_membership!` do autoryzacji). `ensure_store` domyślnie ustawia `store ||= Spree::Current.store` — **nigdy z `resource`**, nawet gdy `resource` samo jest tym `Store`em (najczęstszy przypadek: rola admina bezpośrednio na sklepie). Efekt: `store.add_user(current_user)` wywołane po utworzeniu nowego sklepu (`Admin::StoresController#create`) wiązało nowo utworzony `RoleUser` z `Spree::Current.store` — czyli sklepem *bieżącym* w kontekście danego żądania — a nie z nowo utworzonym sklepem, na który rola faktycznie została nadana. Admin, który dopiero co założył sklep, dostawał 403 przy pierwszej próbie wejścia do niego.
+
+Zweryfikowane empirycznie dwukrotnie przez `rails runner` na produkcyjnej ścieżce `Store#add_user` (nie przez spekulację o kolejności `before_action`/callbacków): bez poprawki `RoleUser.store_id` = sklep ustawiony jako `Spree::Current.store` w skrypcie (nie sklep przekazany jako `resource`); z poprawką `RoleUser.store_id` poprawnie równy `resource.id`.
+
+### Decyzja
+
+`Spree::RoleUser#ensure_store` nadpisuje `SingleStoreResource#ensure_store` (nazwa metody identyczna, więc Ruby method resolution wybiera wersję z `RoleUser` — żadnej zmiany w rejestracji callbacków, żadnego ryzyka rozjazdu kolejności): `self.store ||= resource.is_a?(Spree::Store) ? resource : Spree::Current.store`. Gdy `resource` nie jest sklepem (np. przyszłe role na innych typach zasobów), zachowanie identyczne jak wcześniej.
+
+### Uzasadnienie
+
+`SingleStoreResource` jest współdzielonym mixinem używanym przez ~19 modeli (Order, Promotion, Channel, itd.), z których żaden poza `RoleUser` nie ma polimorficznego `resource` obok `store`. Zmiana samego mixina byłaby niepotrzebnie szeroka i ryzykowna dla niepowiązanych modeli. Nadpisanie w `RoleUser` jest precyzyjne, lokalne i nie zmienia zachowania dla żadnego innego includera.
+
+### Wpływ na upstream
+
+Brak wpływu na Store API konsumowane przez `sklepikFront` — to zmiana modelu Admin-side (autoryzacja panelu), nie kontraktu Store API.
+
+### Notatki
+
+Naprawione w tej samej sesji: `store_controller_spec.rb` (zbyt szeroki `include_context` maskujący ten bug + brakująca seed roli `'admin'` w teście z traitem `:without_admin_role`), `admin_user_methods_spec.rb` (ten sam wzorzec brakującej roli), `stores_spec.rb` (fałszywa deklaracja `security [api_key: []]` + brakujący fixture strefy wysyłkowej wymagany przez `ensure_default_market`). Pełne podsumowanie weryfikacji (333 przykłady, 0 failures łącznie) w `docs/roadmap.md` F25. Znany, nienaprawiony jeszcze dług UX: `StoresController#create` zwraca puste `message` w 422, gdy błąd pochodzi z `Market`/`MarketCountry` (zagnieżdżone w `after_create`), nie z samego `Store` — patrz `docs/technical-debt.md`.
+
 ## 2026-07-12 — Admin API rozwiązuje `current_store` z nagłówka, nie z hosta (wielosklepowość, Faza 1)
 
 ### Status
