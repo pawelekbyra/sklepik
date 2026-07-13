@@ -11,7 +11,7 @@ RSpec.describe 'Admin Stores API', type: :request, swagger_doc: 'api-reference/a
     get 'List the stores this admin belongs to' do
       tags 'Stores'
       produces 'application/json'
-      security [api_key: [], bearer_auth: []]
+      security [{ bearer_auth: [] }]
       description 'Returns every store the authenticated admin holds a role on — the list a store switcher picks from before one is selected.'
 
       admin_sdk_example 'stores/list'
@@ -44,7 +44,7 @@ RSpec.describe 'Admin Stores API', type: :request, swagger_doc: 'api-reference/a
       tags 'Stores'
       consumes 'application/json'
       produces 'application/json'
-      security [api_key: [], bearer_auth: []]
+      security [{ bearer_auth: [] }]
       description 'Creates a new store and grants the requesting admin the admin role on it. Requires the admin to already hold the admin role on at least one existing store.'
 
       admin_sdk_example 'stores/create'
@@ -74,6 +74,18 @@ RSpec.describe 'Admin Stores API', type: :request, swagger_doc: 'api-reference/a
             default_locale: 'en',
             default_country_iso: 'US'
           }
+        end
+
+        # `default_country_iso` drives the `after_create` default-market
+        # bootstrap (`Spree::Stores::Markets#ensure_default_market`), which
+        # requires the country to already have shipping coverage somewhere
+        # in the system (`Spree::MarketCountry#country_covered_by_shipping_zone`)
+        # — same fixture shape as `spree/core/spec/models/spree/store_spec.rb`.
+        before do
+          country = Spree::Country.find_by(iso: 'US') || create(:country, iso: 'US')
+          zone = create(:zone, name: 'US Zone', kind: 'country')
+          zone.zone_members.create!(zoneable: country)
+          create(:shipping_method, zones: [zone])
         end
 
         schema '$ref' => '#/components/schemas/Store'

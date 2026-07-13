@@ -245,7 +245,13 @@ describe Spree::AdminUserMethods do
       let(:user) { create(:admin_user, :without_admin_role) }
       let(:other_store) { create(:store) }
 
-      before { user.add_role('admin', other_store) }
+      before do
+        # `:without_admin_role` skips the factory's usual
+        # `Spree::Role.default_admin_role` side effect, so the 'admin' role
+        # doesn't otherwise exist yet for `add_role` to find.
+        Spree::Role.default_admin_role
+        user.add_role('admin', other_store)
+      end
 
       it 'is true regardless of which store is current' do
         is_expected.to be(true)
