@@ -1,7 +1,6 @@
 /** Runtime checks for the public Store API contract exposed by @spree/sdk. */
 
-import type { Client, Store } from '@spree/sdk'
-import type { TenantId } from '@spree/sdk'
+import type { Client, Store, TenantId } from '@spree/sdk'
 
 export interface ContractTestConfig {
   client: Client
@@ -20,11 +19,7 @@ function requireFields(value: object, fields: string[], subject: string): void {
 export async function testStoreContract(config: ContractTestConfig): Promise<Store> {
   const store = await config.client.store.get()
 
-  requireFields(
-    store,
-    ['id', 'name', 'url', 'default_currency', 'default_locale'],
-    'Store',
-  )
+  requireFields(store, ['id', 'name', 'url', 'default_currency', 'default_locale'], 'Store')
 
   return store
 }

@@ -35,13 +35,13 @@ export interface ApiKey {
 }
 
 export type ApiKeyScope =
-  | "read_products"
-  | "read_store"
-  | "write_cart"
-  | "read_customer"
-  | "write_customer"
-  | "read_orders"
-  | "write_orders"
+  | 'read_products'
+  | 'read_store'
+  | 'write_cart'
+  | 'read_customer'
+  | 'write_customer'
+  | 'read_orders'
+  | 'write_orders'
 
 /**
  * Tenant/Store context for a storefront.
@@ -131,5 +131,5 @@ export interface StoreFactoryManifest {
   /** Health check endpoint */
   health_check_endpoint: string
   /** Release channel (e.g., "stable", "canary") */
-  release_channel: "stable" | "canary" | "staging"
+  release_channel: 'stable' | 'canary' | 'staging'
 }

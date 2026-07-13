@@ -7,5 +7,5 @@
  * Gate: must pass all tests before promoting to production.
  */
 
-export * from './isolation'
 export * from './contract'
+export * from './isolation'

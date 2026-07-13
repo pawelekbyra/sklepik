@@ -55,9 +55,7 @@ export async function testApiKeyScope(config: IsolationTestConfig): Promise<void
   })
 
   if (response.ok) {
-    throw new Error(
-      `SECURITY BREACH: Store A key selected Store B (status: ${response.status})`,
-    )
+    throw new Error(`SECURITY BREACH: Store A key selected Store B (status: ${response.status})`)
   }
 }
 

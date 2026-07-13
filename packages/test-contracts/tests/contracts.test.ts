@@ -73,10 +73,18 @@ describe('Store API contracts', () => {
     } as unknown as Client
 
     await expect(
-      testErrorContract({ client: rejectingClient, storeId: tenantA, apiBaseUrl: 'https://api.test' }),
+      testErrorContract({
+        client: rejectingClient,
+        storeId: tenantA,
+        apiBaseUrl: 'https://api.test',
+      }),
     ).resolves.toBeUndefined()
     await expect(
-      testErrorContract({ client: leakingClient, storeId: tenantA, apiBaseUrl: 'https://api.test' }),
+      testErrorContract({
+        client: leakingClient,
+        storeId: tenantA,
+        apiBaseUrl: 'https://api.test',
+      }),
     ).rejects.toThrow('Expected a missing product request to reject')
   })
 })
