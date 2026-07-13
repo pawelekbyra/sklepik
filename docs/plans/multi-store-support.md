@@ -64,12 +64,13 @@ Faza 2 (storefront po domenie) i Faza 3 (self-service + billing) mają dostać w
 
 ## Open Questions
 
-- Faza 2: czy jeden deployment Next.js ma obsługiwać wiele domen (middleware rozpoznający `Host`), czy zostajemy przy "jeden deployment per sklep" na stałe? Nie rozstrzygamy teraz. Docelowa, bardziej ambitna wersja tej ścieżki — pełna niezależność wizualna sklepu (layout/styl jako dane, nie kod, bez forkowania repo) — rozpisana osobno w [`storefront-composition-system.md`](storefront-composition-system.md).
+- Faza 2: czy jeden deployment Next.js ma obsługiwać wiele domen (middleware rozpoznający `Host`), czy zostajemy przy "jeden deployment per sklep" na stałe? **Rozstrzygnięte 2026-07-13:** model docelowy to repozytorium + projekt Vercel per sklep (nie jeden wspólny deployment) — patrz [`store-factory.md`](store-factory.md). `storefront-composition-system.md` (wcześniejsza, odwrócona propozycja "layout jako dane bez forkowania repo") zostaje jako opis opcjonalnego trybu `managed`, nie jako model docelowy.
 - Faza 3: model rozliczeń (Stripe Billing? Ile planów?), kto może zawiesić sklep za brak płatności, jak wygląda deprovisioning. Świadomie odłożone do decyzji właściciela.
 - Czy sklepy mają mieć możliwość współdzielenia katalogu produktów (multi-store selling tego samego produktu) czy każdy sklep to w pełni odrębny katalog? Dzisiejszy model (`Product belongs_to :store`) zakłada to drugie — jeśli właściciel zechce współdzielony katalog, to osobna, większa decyzja architektoniczna.
 
 ## References
 
+- [`store-factory.md`](store-factory.md) — decyzja o docelowym modelu niezależności (repo + Vercel per sklep), Faza 3 tego planu w praktyce.
 - `docs/roadmap.md` — F25.
 - `spree/core/app/models/spree/role_user.rb`, `spree/core/app/models/concerns/spree/user_roles.rb`, `spree/core/app/models/spree/ability.rb` — istniejący fundament ról per-store.
 - `packages/dashboard-core/src/providers/store-provider.tsx`, `packages/dashboard/src/routes/_authenticated/$storeId.tsx` — istniejący routing/provider po stronie panelu.

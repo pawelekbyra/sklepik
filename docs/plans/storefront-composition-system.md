@@ -1,18 +1,25 @@
-# System kompozycji storefrontu (docelowa niezależność stylu/layoutu bez forkowania kodu)
+# System kompozycji storefrontu (tryb "managed" w drabinie izolacji Store Factory)
 
-**Status:** Draft — wizja koncepcyjna, nierozpoczęta
+**Status:** Draft — wizja koncepcyjna, nierozpoczęta. **Zawężony zakres (2026-07-13, patrz nota niżej).**
 **Target:** `sklepikFront` (storefront), `sklepik` (backend, jako źródło danych konfiguracji)
 **Depends on:** [`multi-store-support.md`](multi-store-support.md) — Faza 1 (zaimplementowana), rozszerza/precyzuje Fazę 2 tamtego planu
+**Superseded by (jako model docelowy niezależności):** [`store-factory.md`](store-factory.md) — patrz nota niżej
 **Author:** właściciel + agent (sesja 2026-07-13)
 **Last updated:** 2026-07-13
 
-## Summary
+## Nota o zmianie decyzji (2026-07-13)
+
+Ten dokument pierwotnie odpowiadał na pytanie "czy pełna niezależność wizualna wymaga forka repo?" wnioskiem "nie — buduj warstwę kompozycji zamiast forkować". **Właściciel zmienił tę decyzję tego samego dnia** na korzyść modelu opisanego w [`store-factory.md`](store-factory.md): repozytorium + projekt Vercel per sklep jako **domyślny, docelowy model niezależności**, nie jako wyjątek premium.
+
+Ten dokument **nie jest usuwany** — jego zakres zawęża się do opisu ewentualnego trybu `managed` z drabiny izolacji Store Factory (opcja szybkiego, taniego uruchomienia sklepu bez własnego repo, dla klientów, którym niezależność kodu nie jest potrzebna). Szczegóły projektowe niżej (model danych sekcji, design tokens, draft/publish) zostają jako materiał referencyjny, gdyby tryb `managed` miał kiedyś powstać — ale **nie są już celem głównym** i nie powinny być traktowane jako plan do realizacji bez osobnej decyzji.
+
+## Summary (oryginalny kontekst, historyczny)
 
 Pytanie, które zainicjowało ten plan: jeśli sklep ma mieć **pełną niezależność wizualną** (własny layout, własny styl, nie tylko kolor/logo) i nie ma ograniczeń budżetowych na inżynierię, to jakie jest najlepsze rozwiązanie — czy to fork repozytorium per sklep?
 
-Odpowiedź: **nie.** Fork repo per sklep to tani kompromis, nie premium rozwiązanie — kupuje niezależność kodu kosztem N kopii do ręcznego utrzymania (każda poprawka bezpieczeństwa/checkoutu musi być propagowana ręcznie albo botem synchronizującym). Platformy z prawdziwym budżetem inżynieryjnym (Shopify Online Store 2.0, Webflow, Builder.io) nie forkują kodu per klient — budują **warstwę kompozycji**: system komponentów + drzewo strony jako dane (JSON w bazie), renderowane przez jedną, wspólną aplikację. Właściciel sklepu (albo jego designer) komponuje layout wizualnie, bez dotykania kodu, a mimo to dostaje w praktyce nieograniczoną swobodę wizualną. Płaci się raz za zbudowanie tej warstwy, zamiast płacić powtarzalnie za utrzymanie N kodebase'ów.
+Odpowiedź udzielona wtedy: **nie** — fork repo per sklep to tani kompromis, nie premium rozwiązanie; lepiej budować warstwę kompozycji (system komponentów + drzewo strony jako dane, renderowane przez jedną wspólną aplikację). **Ta odpowiedź została odwrócona** — patrz nota wyżej i [`store-factory.md`](store-factory.md) dla aktualnego uzasadnienia (prawdziwa niezależność — kod, deployment, własność, transfer do klienta — wymaga osobnej aplikacji, nie tylko danych renderowanych przez wspólny kod).
 
-To jest wizja **docelowa** (target state), świadomie ambitniejsza niż Faza 2 z `multi-store-support.md` (która zakładała tylko routing po domenie, bez zmiany modelu customizacji). Ten plan nie jest jeszcze zaczęty i nie ma ustalonego terminu — zapisany, żeby nie zgubić decyzji architektonicznej, gdy przyjdzie czas na realizację.
+Poniższe sekcje (Key Decisions, Design Details, Migration Path) opisują wizję sprzed zmiany decyzji i są zachowane jako materiał referencyjny dla trybu `managed`, nie jako aktywny plan.
 
 ## Key Decisions (do not deviate without discussion)
 

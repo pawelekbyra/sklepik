@@ -1,0 +1,131 @@
+# Store Factory — niezależna aplikacja per sklep (repo + Vercel per sklep)
+
+**Status:** Decision Finalized (model docelowy) — realizacja: Draft, nierozpoczęta (Etap 0 z Migration Path jeszcze nie ruszony)
+**Target:** `sklepik` (control plane + provisioning), nowe repozytoria per sklep (starter wydzielony z `sklepikFront`)
+**Depends on:** [`multi-store-support.md`](multi-store-support.md) — Faza 1 (zaimplementowana, fundament ról/store w Admin API)
+**Supersedes:** docelowy model niezależności z [`storefront-composition-system.md`](storefront-composition-system.md) — patrz sekcja "Relacja do composition-system" niżej
+**Author:** właściciel + agent (sesja 2026-07-13, na podstawie dokumentu strategicznego "Store Factory 2026" dostarczonego przez właściciela)
+**Last updated:** 2026-07-13
+
+## Summary
+
+Decyzja właściciela (2026-07-13): docelowym, przyszłościowym modelem niezależności sklepu jest **osobna aplikacja per sklep**, nie jeden wspólny storefront z warstwą kompozycji danych. Każdy nowy sklep dostaje docelowo: własne prywatne repozytorium GitHub, własny projekt Vercel, własną domenę, własne sekrety i niezależny kod Next.js. Aplikacja nie jest kopią całego `sklepikFront`, tylko korzysta z cienkiego startera oraz wersjonowanych, wymiennych pakietów commerce (`@sklepik/*`). Centralny backend Spree (`sklepik`) pozostaje wspólnym systemem commerce i control plane; osobny backend/baza per sklep to wyższy, opcjonalny poziom izolacji (enterprise), nie standard.
+
+To rozstrzyga pytanie postawione w `storefront-composition-system.md` ("czy pełna niezależność wizualna wymaga forka repo") na korzyść **repo per sklep jako modelu domyślnego dla niezależnych sklepów**, a nie jako "wyjątku premium". Uzasadnienie: prawdziwa niezależność (kod, deployment, własność, możliwość przekazania klientowi) wymaga osobnej aplikacji — page builder/system kompozycji ogranicza zawsze do zestawu komponentów i zachowań przewidzianych wcześniej przez platformę, niezależnie jak elastyczny.
+
+## Relacja do composition-system
+
+`storefront-composition-system.md` zakładał "jeden storefront, jedna baza kodu, wszystkie sklepy" jako model domyślny, z forkiem repo jako rzadkim wyjątkiem premium. Ta decyzja jest **uchylona** jako cel docelowy. System kompozycji (layout/theme jako dane) pozostaje użyteczną koncepcją, ale przesuwa się do roli **opcjonalnego, szybkiego trybu "Managed"** wewnątrz drabiny izolacji Store Factory (patrz niżej) — dla sklepów, którym wystarczy szybkie uruchomienie bez własnego kodu, nie dla docelowego modelu niezależności. `storefront-composition-system.md` zostaje zaktualizowany, żeby to odzwierciedlać, zamiast usunięty — jego szczegóły projektowe (model danych sekcji, design tokens, draft/publish) są nadal potencjalnie przydatne dla trybu Managed, gdyby ten tryb miał kiedyś powstać.
+
+## Key Decisions (do not deviate without discussion)
+
+1. **Repozytorium per sklep** dla trybu `independent_storefront` — właściwy model, gdy kod i wdrożenia mają być faktycznie niezależne i przekazywalne klientowi.
+2. **Cienki starter, nie pełny fork.** Template (`sklepik-store-template`) tworzy tylko strukturę wyjściową. Wspólna logika (kontrakt API, SDK, headless cart/checkout) jest konsumowana jako wersjonowane pakiety `@sklepik/*`, nigdy kopiowana plik-po-pliku.
+3. **Własny projekt Vercel per sklep** w trybie independent — izolowane buildy, env, domeny, preview, historia deploymentów.
+4. **AI nigdy nie jest provisionerem infrastruktury.** Tworzenie repo/Vercel/env/domen/sekretów jest deterministycznym kodem platformowym. AI generuje/modyfikuje kod aplikacji sklepu wyłącznie przez branch → sandbox → testy → PR, nigdy bezpośrednim zapisem do produkcji ani wywołaniem API providerów.
+5. **Aktualizacje przez wersjonowane pakiety i boty otwierające PR, nigdy przez nadpisywanie plików z template.** Update Bot otwiera PR-y aktualizujące `@sklepik/*`; nie ma prawa nadpisać indywidualnego kodu sklepu bez PR/review.
+6. **Niezależność jest stopniowana (drabina izolacji), nie binarna:**
+   - `managed` — wspólny/generowany standard, wspólny backend i baza. Szybkie wdrożenie bez własnego repo (dawna wizja `storefront-composition-system.md`, teraz opcja pomocnicza).
+   - `independent_storefront` — własne repo + Vercel, wspólny Spree z twardym store scope. **Model docelowy/domyślny** dla sklepów chcących realną niezależność.
+   - `dedicated_data` — jw. + osobna baza/storage, wspólna wersja backendu.
+   - `dedicated_stack` — pełny osobny backend/DB/Redis/storage/release. Enterprise/compliance.
+7. **Provisioning aplikacji to osobny, trwały workflow** (retry, kompensacje, audyt) — nie rozbudowa synchronicznego `Store#create`. `Store#create` zostaje transakcyjną operacją domenową (już zaimplementowaną w `multi-store-support.md` Faza 1); tworzenie repo/Vercel/domeny/webhooków jest osobnym `ProvisioningRun`.
+8. **Repozytoria powstają w organizacji GitHub platformy, autoryzowane przez GitHub App** (nie personal access token, nie prywatne konto).
+
+## Design Details
+
+### Komponenty platformy
+
+| Komponent | Odpowiedzialność | Granica |
+|---|---|---|
+| Control Plane (`sklepik`) | Store, użytkownicy, billing, polityki, katalog repo/deploymentów | Nie wykonuje wygenerowanego kodu |
+| Provisioning Orchestrator | Trwały proces i stan kroków (start: Rails + Sidekiq + tabele `ProvisioningRun`/`ProvisioningStep`) | Nie zawiera logiki konkretnego providera |
+| GitHub Provider | Repo, branch, commit, PR, ruleset, webhook | Autoryzacja wyłącznie przez GitHub App |
+| Sandbox Builder | Generowanie, instalacja, build, testy, preview | Bez sekretów produkcyjnych |
+| Vercel Provider | Projekt, env, domena, deployment, rollback | Adapter wymienny na innego providera |
+| Compatibility Service | Macierz wersji backend × pakiety × testy | Blokuje niezgodne release |
+| Update Bot | PR-y aktualizacyjne i security rollouts | Nie nadpisuje kodu sklepu bez review |
+
+Rekomendacja orkiestracji: start na Rails + Sidekiq z jawną maszyną stanów i idempotentnymi krokami w bazie (control plane już ma Sidekiq — najkrótsza droga bez rozdzielania źródła prawdy). Migracja do Vercel Workflows/Temporal dopiero gdy pojawią się długie oczekiwania (DNS, akceptacja klienta) lub osobny zespół platformowy.
+
+### Pakiety `@sklepik/*` (kontrakt, nie wygląd)
+
+| Pakiet | Zakres | Może sklep zastąpić? |
+|---|---|---|
+| `@sklepik/contracts` | Typy OpenAPI, eventy webhook, schema manifestu | Nie — kontrakt zgodności |
+| `@sklepik/commerce-sdk` | Cienki klient Store API + tenant context | Tak |
+| `@sklepik/cart-core` | Headless state/operacje koszyka | Tak |
+| `@sklepik/checkout-core` | Headless checkout, adaptery płatności | Tak, po testach kontraktowych |
+| `@sklepik/checkout-ui` | Opcjonalny gotowy UI checkoutu | Tak, domyślnie wymienny |
+| `@sklepik/webhooks` | Weryfikacja podpisu, idempotencja | Może rozszerzyć, nie osłabić |
+| `@sklepik/test-contracts` | Testy API/cart/checkout/tenant isolation | Nie — wymagane przez politykę release |
+| `@sklepik/observability` | Korelacja request/deployment/store | Może podmienić, zachowując sygnały |
+| `@sklepik/cli` | bootstrap/validate/doctor/compatibility report | Narzędzie platformowe |
+
+Zasada projektowa: im większy wspólny pakiet UI, tym mniej niezależny sklep. Pakiety headless i composable są priorytetem; gotowy UI to wygodna opcja, nigdy obowiązkowa warstwa. Do wspólnego core **nie** trafiają: komponenty hompage konkretnej marki, globalny Tailwind theme, routing/treści, branding, eksperymentalne integracje pojedynczych sklepów.
+
+### Proces tworzenia sklepu (tryb `independent_storefront`)
+
+Maszyna stanów: `pending → creating_commerce_identity → creating_repository → applying_repository_policy → generating_application → validating_in_sandbox → creating_vercel_project → configuring_environment → deploying_preview → verifying → awaiting_approval|awaiting_dns → promoting_production → active`. Każdy stan może przejść do `retrying` / `failed_recoverable` / `failed_terminal` / `cancelled`.
+
+Idempotencja per krok: repo (`store_application_id` jako klucz), Vercel project (nazwa + `project_id`), env (upsert po nazwa+target+wersja, nigdy log wartości), domena (`domain_binding_id`, `awaiting_dns` + weryfikacja cykliczna), webhook (`store_id`+endpoint, upsert + rotacja z okresem przejściowym), deployment (commit SHA + `project_id`, brak duplikatu).
+
+### AI pipeline (dopiero po stabilnym pilocie, patrz Migration Path)
+
+`Brief sklepu → plan zmian → ephemeral branch → izolowany sandbox (Vercel Sandbox / Firecracker microVM) → generowanie/edycja kodu → lint+typecheck+test+build → preview deployment → browser verification → raport ryzyka i diff → pull request → akceptacja polityki/człowieka → merge i production deployment`.
+
+Tryby: `Suggest` (tylko raport/diff), `PR` (domyślny produkcyjny), `Auto-merge safe` (tylko niskie ryzyko + zielone checks), `Emergency update` (wymuszony security PR). Klasy ryzyka zmian: niska (auto-merge możliwy) → średnia (unit+E2E+review) → wysoka (koszyk/checkout/auth/płatności — CODEOWNER + contract tests + manual approval) → krytyczna (secrets/CI/deployment policy — brak AI auto-merge).
+
+Zasady bezpieczeństwa sandboxu: brak produkcyjnych sekretów, repo-scoped GitHub token, brak direct push do `main`, kontrolowane zależności (lockfile + skan podatności), limity zasobów, pełny audyt (`GenerationRun`: prompt, model, diff, testy, preview, decyzja merge).
+
+### Model danych control plane (szkic)
+
+`StoreApplication` (id, store_id, mode, status, template_version, api_contract_version, release_channel, repository_id, deployment_target_id, active_release_sha), `GitRepository`, `DeploymentTarget` + `DomainBinding`, `ProvisioningRun` + `ProvisioningStep`, `GenerationRun` + `CompatibilityReport`. Interfejsy providerów (`GitProvider`, `DeploymentProvider`) zwracają stabilne referencje/błędy domenowe — control plane nigdy nie woła bezpośrednio konkretnego endpointu Vercela z kontrolera.
+
+### Manifest aplikacji sklepu (`store.app.json`)
+
+Jawny plik w repo sklepu: `storeId`, `name`, `runtime`, `apiContract`, `capabilities`, `routes` (home/product/cart/checkout), `health`, `webhooks`, `releaseChannel`. Weryfikowany przez `@sklepik/cli validate`/`doctor`.
+
+## Migration Path
+
+Kolejność redukuje ryzyko: najpierw kontrakt i update path, dopiero potem mnożenie repozytoriów.
+
+**Etap 0 — fundament (nie rozpoczęty).** Domknąć OpenAPI/typy dla stores, naprawić pusty 422 przy braku shipping coverage (`stan-projektu.md` pkt "Wielosklepowość — pusty komunikat błędu"), test izolacji dwóch sklepów, zdefiniować `application_mode` (`managed`/`independent_storefront`/`dedicated_stack`) w modelu `StoreApplication`.
+
+**Etap 1 — Store App Contract.** Wydzielić `@sklepik/contracts` i `@sklepik/commerce-sdk` z `sklepikFront`. Wydzielić minimalny headless cart/checkout bez brandingu Kakałowego Sklepiku. Zbudować `@sklepik/test-contracts`. Zdefiniować `store.app.json` i CLI validate/doctor. Ustalić semver i macierz kompatybilności. **Gate:** `sklepikFront` musi dać się przepiąć na nowe pakiety bez zmiany zachowania użytkownika, zanim wolno tworzyć wiele repozytoriów.
+
+**Etap 2 — cienki template i pierwszy ręczny pilot.** `sklepik-store-template` bez brandingu/hardcoded nazwy/kraju/domeny, z manifestem, testami kontraktowymi i CI. Ręcznie utworzyć drugi sklep w osobnym repo i Vercel. Przetestować update pakietu core przez PR i rollback.
+
+**Etap 3 — Control Plane i provider adapters.** Modele `StoreApplication`/`GitRepository`/`DeploymentTarget`/`DomainBinding`/`ProvisioningRun`/`ProvisioningStep`. Interfejsy `GitProvider`/`DeploymentProvider`. Status i log procesu w panelu. Idempotency keys, retry, cancel/retry jawne.
+
+**Etap 4 — automatyczny GitHub + Vercel provisioning.** GitHub App tworzy repo z template + polityki. Provisioner tworzy Vercel project/env/preview. Smoke testy weryfikują `store_id`. Panel pokazuje preview URL/log/błędy. Produkcja wymaga jawnej promocji lub polityki auto-promote.
+
+**Etap 5 — Update Bot i fleet governance.** Centralny rejestr wersji, automatyczne PR-y patch/minor, raport compatibility/security, kanały stable/canary/pinned, procedura krytycznej poprawki.
+
+**Etap 6 — AI Store Builder** (dopiero po stabilnym pilocie z Etapów 0-5). Brief → plan → branch → sandbox → build → preview → PR. `GenerationRun` zapisuje pełny audyt. Visual verification przez przeglądarkę. Blokada auto-merge dla checkout/auth/CI.
+
+**Etap 7 — Dedicated Stack** (enterprise, na żądanie płacącego klienta, nie z wyprzedzeniem). Wersjonowany obraz backendu, provider bazy/Redis/storage/domeny API, migracja shared→dedicated, backup/restore/transfer.
+
+## Constraints on Current Work
+
+- **Nic w bieżącej pracy nie zmienia się natychmiast.** Store Factory jest decyzją o modelu docelowym, nie zadaniem do wykonania teraz — realizacja czeka na zamknięcie P0/P1 z Fazy 1 (Kakao MVP: Stripe, strony prawne) z `roadmap.md`. Etap 0 tego planu może ruszyć równolegle tylko jeśli nie odciąga zasobów od tamtych blokerów sprzedażowych.
+- `sklepikFront` pozostaje dziś jedynym, wspólnym repo storefrontu — żadnych nowych repozytoriów per sklep, dopóki Etap 1 (wydzielenie `@sklepik/contracts`/`commerce-sdk`) nie jest gotowe i przetestowane na istniejącym storefroncie.
+- Jeśli ktoś zacznie realnie wydzielać pakiety `@sklepik/*` z `sklepikFront` (Etap 1), musi to robić bez zmiany zachowania użytkownika — to jest gate przed Etapem 2, nie opcjonalny refaktor.
+- `docs/plans/storefront-composition-system.md` pozostaje jako opis trybu `managed` — nie budować go jako alternatywnego modelu docelowego dla niezależnych sklepów.
+
+## Open Questions
+
+- Governance: repozytoria klientów w organizacji GitHub platformy na stałe, czy transfer własności od razu przy podpisaniu umowy premium?
+- Kiedy realnie zacząć Etap 3+ (control plane/orchestrator) — po ilu ręcznie utworzonych sklepach z Etapu 2 uznajemy wzorzec za sprawdzony?
+- Model cenowy warstw `managed` vs `independent_storefront` vs `dedicated_*` — kto płaci za co, nierozstrzygnięte.
+- Czy `managed` (dawna wizja `storefront-composition-system.md`) w ogóle zostanie zbudowany, czy zostaje tylko koncepcją "opcji szybszej" bez realnej implementacji, dopóki nie pojawi się klient, dla którego to wystarczy?
+- AI Store Builder (Etap 6): jaki model/dostawca sandboxa (Vercel Sandbox vs alternatywa), budżet na iteracje agenta.
+
+## References
+
+- Dokument strategiczny "Store Factory 2026" (dostarczony przez właściciela, 13 lipca 2026) — źródło tej decyzji.
+- [`multi-store-support.md`](multi-store-support.md) — Faza 1, zaimplementowany fundament ról/store w Admin API, na którym opiera się control plane.
+- [`storefront-composition-system.md`](storefront-composition-system.md) — zawężony do opisu trybu `managed`, patrz nota na górze tego dokumentu.
+- [`../ideas/multi-store-provisioning.md`](../ideas/multi-store-provisioning.md) — wcześniejszy szkic, z którego ten plan wywodzi model provisioningu; ten dokument go zastępuje jako decyzja, nie tylko pomysł.
+- Vercel — Multi-Project Platforms Concepts, Workflows, Sandbox (dokumentacja zewnętrzna, stan na 2026-07-13).
+- GitHub REST API — Create a repository using a template.

@@ -150,6 +150,8 @@ _Zweryfikowane lokalnie (Postgres, `spree/api/spec/dummy`, ta sesja):_ `store_co
 
 Dynamiczne rozpoznawanie sklepu po domenie w storefroncie to Faza 2, samoobsługa zewnętrznych użytkowników (płatność, automatyczny provisioning) to Faza 3 — obie świadomie odłożone, opisane jako Open Questions w planie.
 
+**Decyzja 2026-07-13 (poza aktywną roadmapą, jeszcze nierozpoczęta):** model docelowy dla Fazy 3 (niezależne sklepy) to "Store Factory" — repozytorium + projekt Vercel per sklep, nie jeden wspólny storefront z warstwą kompozycji danych. Pełny plan: [`docs/plans/store-factory.md`](plans/store-factory.md). Realizacja (nawet Etap 0) czeka na zamknięcie blokerów sprzedażowych Fazy 2 poniżej.
+
 ## Faza 2 — Kakao MVP
 
 Start dopiero po zamknięciu P0 i P1 z Fazy 1.

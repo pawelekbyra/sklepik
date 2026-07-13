@@ -1,6 +1,6 @@
 # Pomysł do rozważenia: automatyczny provisioning wielu sklepów
 
-**Status:** pomysł koncepcyjny — poza aktywną roadmapą  
+**Status:** ZASTĄPIONY decyzją — patrz [`docs/plans/store-factory.md`](../plans/store-factory.md) (2026-07-13). Ten dokument zostaje jako historyczny szkic, z którego wywodzi się decyzja; rekomendacja "wspólne repo storefrontu, osobny projekt Vercel per sklep" poniżej **nie jest już aktualna** — model docelowy to osobne repozytorium **i** projekt Vercel per sklep (`store-factory.md`).
 **Data zapisu:** 2026-07-12
 
 ## Kontekst
