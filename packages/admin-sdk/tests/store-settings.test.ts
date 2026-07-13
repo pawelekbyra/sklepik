@@ -44,9 +44,7 @@ describe('store', () => {
 describe('stores', () => {
   describe('list', () => {
     it('GETs /stores and unwraps the data envelope', async () => {
-      server.use(
-        http.get(`${API_PREFIX}/stores`, () => HttpResponse.json({ data: [sampleStore] })),
-      )
+      server.use(http.get(`${API_PREFIX}/stores`, () => HttpResponse.json({ data: [sampleStore] })))
 
       const res = await createTestClient().stores.list()
 
