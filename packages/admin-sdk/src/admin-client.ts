@@ -201,6 +201,7 @@ import type {
   Promotion,
   PromotionAction,
   PromotionRule,
+  ProvisioningRun,
   Refund,
   ResourceTranslations,
   ResourceTranslationsNode,
@@ -496,6 +497,21 @@ export class AdminClient {
 
     create: (params: StoreCreateParams, options?: RequestOptions): Promise<Store> =>
       this.request<Store>('POST', '/stores', { ...options, body: params }),
+  }
+
+  /**
+   * Store Factory (docs/plans/store-factory.md): automatic provisioning of
+   * an independent storefront app (GitHub repo + Vercel project) for a
+   * store. `start()` kicks off a new attempt, `status()` polls the latest
+   * one — the panel polls this after `start()` until the run reaches
+   * `active` or `failed`.
+   */
+  readonly provisioningRun = {
+    start: (storeId: string, options?: RequestOptions): Promise<ProvisioningRun> =>
+      this.request<ProvisioningRun>('POST', `/stores/${storeId}/provisioning_run`, options),
+
+    status: (storeId: string, options?: RequestOptions): Promise<ProvisioningRun> =>
+      this.request<ProvisioningRun>('GET', `/stores/${storeId}/provisioning_run`, options),
   }
 
   /** The locales a merchant can translate content into for the current store. */

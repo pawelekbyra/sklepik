@@ -9,6 +9,7 @@ export const newStoreFormSchema = z.object({
   default_currency: z.string().optional(),
   default_locale: z.string().optional(),
   default_country_iso: z.string().optional(),
+  provision_storefront: z.boolean().optional(),
 })
 
 export type NewStoreFormValues = z.infer<typeof newStoreFormSchema>

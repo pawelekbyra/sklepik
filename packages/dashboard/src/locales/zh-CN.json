@@ -1702,7 +1702,18 @@
         "title": "新建店铺",
         "subtitle": "创建另一个由此管理面板管理的店铺。",
         "success": "店铺已创建",
-        "error": "创建店铺失败"
+        "error": "创建店铺失败",
+        "provision_storefront_label": "自动创建前台应用",
+        "provision_storefront_help": "创建一个 GitHub 仓库（基于 sklepikFront 模板）和关联的 Vercel 项目，然后自动部署——无需手动设置。",
+        "provisioning_title": "正在设置前台",
+        "provisioning_step_creating_repository": "正在创建 GitHub 仓库",
+        "provisioning_step_creating_vercel_project": "正在创建 Vercel 项目",
+        "provisioning_step_configuring_environment": "正在配置环境变量",
+        "provisioning_step_deploying": "正在部署",
+        "provisioning_active": "前台已上线",
+        "provisioning_failed": "配置失败",
+        "provisioning_visit_store": "打开前台",
+        "provisioning_continue_to_admin": "前往店铺后台"
       }
     },
     "invitation": {

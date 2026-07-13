@@ -1,11 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { SpreeError, type StoreCreateParams } from '@spree/admin-sdk'
-import { mapSpreeErrorsToForm, PageHeader, useCreateStore } from '@spree/dashboard-core'
+import {
+  mapSpreeErrorsToForm,
+  PageHeader,
+  useCreateStore,
+  useStartProvisioning,
+} from '@spree/dashboard-core'
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
+  Checkbox,
   Field,
   FieldError,
   FieldGroup,
@@ -16,9 +22,11 @@ import {
   useFormSubmitShortcut,
 } from '@spree/dashboard-ui'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useForm } from 'react-hook-form'
+import { useState } from 'react'
+import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { ProvisioningStatusCard } from '@/components/store-factory/provisioning-status-card'
 import { type NewStoreFormValues, newStoreFormSchema } from '@/schemas/new-store'
 
 export const Route = createFileRoute('/_authenticated/$storeId/new-store')({
@@ -33,12 +41,18 @@ const DEFAULT_VALUES: NewStoreFormValues = {
   default_currency: '',
   default_locale: '',
   default_country_iso: '',
+  provision_storefront: false,
 }
 
 function NewStorePage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const createStore = useCreateStore()
+  const startProvisioning = useStartProvisioning()
+  // Set once the store is created with provisioning requested — switches the
+  // page from "creating a store" to "watching it get provisioned" instead of
+  // navigating away immediately, since there's now something worth watching.
+  const [provisioningStoreId, setProvisioningStoreId] = useState<string | null>(null)
 
   const form = useForm<NewStoreFormValues>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -59,7 +73,13 @@ function NewStorePage() {
     try {
       const store = await createStore.mutateAsync(params)
       toast.success(t('admin.pages.new_store.success'))
-      navigate({ to: '/$storeId', params: { storeId: store.id } })
+
+      if (values.provision_storefront) {
+        setProvisioningStoreId(store.id)
+        await startProvisioning.mutateAsync(store.id)
+      } else {
+        navigate({ to: '/$storeId', params: { storeId: store.id } })
+      }
     } catch (err) {
       if (mapSpreeErrorsToForm(err, form.setError)) return
       if (err instanceof SpreeError) throw err
@@ -70,6 +90,10 @@ function NewStorePage() {
   useFormSubmitShortcut(form, onSubmit)
 
   const { errors } = form.formState
+
+  if (provisioningStoreId) {
+    return <ProvisioningStatusCard storeId={provisioningStoreId} />
+  }
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -190,6 +214,40 @@ function NewStorePage() {
                     <FieldError errors={[errors.default_country_iso]} />
                   </Field>
                 </FieldGroup>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('admin.pages.new_store.provision_storefront_label')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Field>
+                  <div className="flex items-start gap-2">
+                    <Controller
+                      name="provision_storefront"
+                      control={form.control}
+                      render={({ field }) => (
+                        <Checkbox
+                          id="new-store-provision-storefront"
+                          checked={!!field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      )}
+                    />
+                    <div>
+                      <FieldLabel
+                        htmlFor="new-store-provision-storefront"
+                        className="cursor-pointer mb-0"
+                      >
+                        {t('admin.pages.new_store.provision_storefront_label')}
+                      </FieldLabel>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {t('admin.pages.new_store.provision_storefront_help')}
+                      </p>
+                    </div>
+                  </div>
+                </Field>
               </CardContent>
             </Card>
           </>

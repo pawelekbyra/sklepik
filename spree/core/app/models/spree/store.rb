@@ -110,6 +110,7 @@ module Spree
 
     has_many :reports, class_name: 'Spree::Report'
     has_many :exports, class_name: 'Spree::Export'
+    has_many :provisioning_runs, class_name: 'Spree::ProvisioningRun', dependent: :destroy
 
     has_many :integrations, class_name: 'Spree::Integration'
 

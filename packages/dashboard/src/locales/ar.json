@@ -1702,7 +1702,18 @@
         "title": "متجر جديد",
         "subtitle": "أنشئ متجرًا آخر لإدارته من لوحة التحكم هذه.",
         "success": "تم إنشاء المتجر",
-        "error": "فشل إنشاء المتجر"
+        "error": "فشل إنشاء المتجر",
+        "provision_storefront_label": "إنشاء تطبيق واجهة متجر تلقائيًا",
+        "provision_storefront_help": "ينشئ مستودع GitHub (من قالب sklepikFront) ومشروع Vercel مرتبطًا به، ثم ينشره — دون الحاجة لإعداد يدوي.",
+        "provisioning_title": "جارٍ إعداد واجهة المتجر",
+        "provisioning_step_creating_repository": "إنشاء مستودع GitHub",
+        "provisioning_step_creating_vercel_project": "إنشاء مشروع Vercel",
+        "provisioning_step_configuring_environment": "تهيئة متغيرات البيئة",
+        "provisioning_step_deploying": "جارٍ النشر",
+        "provisioning_active": "واجهة المتجر متاحة الآن",
+        "provisioning_failed": "فشل الإعداد",
+        "provisioning_visit_store": "فتح واجهة المتجر",
+        "provisioning_continue_to_admin": "المتابعة إلى إدارة المتجر"
       }
     },
     "invitation": {

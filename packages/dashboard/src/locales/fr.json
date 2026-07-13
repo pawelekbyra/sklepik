@@ -1654,7 +1654,18 @@
         "title": "Nouvelle boutique",
         "subtitle": "Créez une autre boutique à gérer depuis ce tableau de bord.",
         "success": "Boutique créée",
-        "error": "Échec de la création de la boutique"
+        "error": "Échec de la création de la boutique",
+        "provision_storefront_label": "Créer automatiquement une application storefront",
+        "provision_storefront_help": "Crée un dépôt GitHub (à partir du modèle sklepikFront) et un projet Vercel lié, puis le déploie — aucune configuration manuelle nécessaire.",
+        "provisioning_title": "Configuration du storefront",
+        "provisioning_step_creating_repository": "Création du dépôt GitHub",
+        "provisioning_step_creating_vercel_project": "Création du projet Vercel",
+        "provisioning_step_configuring_environment": "Configuration des variables d'environnement",
+        "provisioning_step_deploying": "Déploiement",
+        "provisioning_active": "Le storefront est en ligne",
+        "provisioning_failed": "Échec du provisionnement",
+        "provisioning_visit_store": "Ouvrir le storefront",
+        "provisioning_continue_to_admin": "Continuer vers l'admin du magasin"
       }
     },
     "invitation": {

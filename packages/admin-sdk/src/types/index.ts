@@ -69,7 +69,13 @@ export type { default as Variant } from './generated/Variant'
 export type { default as WebhookDelivery } from './generated/WebhookDelivery'
 export type { default as WebhookEndpoint } from './generated/WebhookEndpoint'
 export type { default as Zone } from './generated/Zone'
-
+// Hand-written Store Factory provisioning types (controller-shaped, not generated)
+export type {
+  ProvisioningRun,
+  ProvisioningRunStatus,
+  ProvisioningStep,
+  ProvisioningStepStatus,
+} from './provisioning'
 // Hand-written translation-management types (controller-shaped, not generated)
 export type {
   Locale,
