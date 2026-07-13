@@ -3,6 +3,7 @@ module Spree
     module V3
       module Store
         class BaseController < Spree::Api::V3::BaseController
+          include Spree::Api::V3::StoreResolution
           # Channel resolution is a Store API concern — admin endpoints return
           # data across all channels and filter via Ransack instead. Including
           # this here keeps the +X-Spree-Channel+ header from accidentally

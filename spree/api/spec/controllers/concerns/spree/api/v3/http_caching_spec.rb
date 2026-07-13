@@ -18,7 +18,10 @@ RSpec.describe Spree::Api::V3::Store::ProductsController, type: :controller do
         it 'sets Vary header for CDN caching, including the store-specific api key' do
           get :index
 
-          expect(response.headers['Vary']).to eq('Accept, x-spree-currency, x-spree-locale, x-spree-api-key')
+          expect(response.headers['Vary']).to eq(
+            'Accept, X-Spree-API-Key, X-Spree-Store-Id, X-Spree-Country, ' \
+            'X-Spree-Currency, X-Spree-Locale, X-Spree-Channel'
+          )
         end
       end
 
@@ -151,6 +154,20 @@ RSpec.describe Spree::Api::V3::Store::ProductsController, type: :controller do
 
           expect(store_b_etag).not_to eq(store_a_etag)
         end
+
+        it 'changes ETag when channel changes' do
+          channel = create(:channel, store: store, code: 'pos')
+          channel.add_products([product.id, product2.id])
+
+          get :index
+          default_channel_etag = response.headers['ETag']
+
+          request.headers['X-Spree-Channel'] = channel.code
+          get :index
+          pos_channel_etag = response.headers['ETag']
+
+          expect(pos_channel_etag).not_to eq(default_channel_etag)
+        end
       end
 
       context 'for authenticated users' do
@@ -207,6 +224,20 @@ RSpec.describe Spree::Api::V3::Store::ProductsController, type: :controller do
 
           expect(response).to have_http_status(:ok)
         end
+
+        it 'changes ETag when channel changes even if the resource is unchanged' do
+          channel = create(:channel, store: store, code: 'wholesale')
+          channel.add_products(product.id)
+
+          get :show, params: { id: product.prefixed_id }
+          default_channel_etag = response.headers['ETag']
+
+          request.headers['X-Spree-Channel'] = channel.code
+          get :show, params: { id: product.prefixed_id }
+          wholesale_etag = response.headers['ETag']
+
+          expect(wholesale_etag).not_to eq(default_channel_etag)
+        end
       end
 
       context 'for authenticated users' do
@@ -226,6 +257,40 @@ RSpec.describe Spree::Api::V3::Store::ProductsController, type: :controller do
           expect(response.headers['Cache-Control']).to include('private')
           expect(response.headers['Cache-Control']).to include('no-store')
         end
+      end
+    end
+
+    describe 'tenant cache keys' do
+      let(:market_a) { instance_double(Spree::Market, cache_key_with_version: 'markets/1-1') }
+      let(:market_b) { instance_double(Spree::Market, cache_key_with_version: 'markets/2-1') }
+
+      before do
+        allow(Spree::Current).to receive(:channel).and_return(store.default_channel)
+        allow(controller).to receive(:current_currency).and_return('USD')
+        allow(controller).to receive(:current_locale).and_return('en')
+      end
+
+      it 'includes the resolved store in collection cache keys' do
+        other_store = create(:store)
+        allow(Spree::Current).to receive(:market).and_return(nil)
+
+        allow(controller).to receive(:current_store).and_return(store)
+        store_key = controller.send(:collection_cache_key, [product])
+
+        allow(controller).to receive(:current_store).and_return(other_store)
+        other_store_key = controller.send(:collection_cache_key, [product])
+
+        expect(other_store_key).not_to eq(store_key)
+      end
+
+      it 'includes the resolved market in resource cache keys' do
+        allow(Spree::Current).to receive(:market).and_return(market_a)
+        market_a_key = controller.send(:resource_cache_key, product)
+
+        allow(Spree::Current).to receive(:market).and_return(market_b)
+        market_b_key = controller.send(:resource_cache_key, product)
+
+        expect(market_b_key).not_to eq(market_a_key)
       end
     end
   end

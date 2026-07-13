@@ -1,6 +1,6 @@
 # Store Factory — niezależna aplikacja per sklep (repo + Vercel per sklep)
 
-**Status:** Decision Finalized (model docelowy) — realizacja: Draft, nierozpoczęta (Etap 0 z Migration Path jeszcze nie ruszony)
+**Status:** Active — Etap 0 wdrożony produkcyjnie i lokalnie utwardzony; Etap 1 wdrożony i naprawiony; Etap 2 (ręczny pilot) następny
 **Target:** `sklepik` (control plane + provisioning), nowe repozytoria per sklep (starter wydzielony z `sklepikFront`)
 **Depends on:** [`multi-store-support.md`](multi-store-support.md) — Faza 1 (zaimplementowana, fundament ról/store w Admin API)
 **Supersedes:** docelowy model niezależności z [`storefront-composition-system.md`](storefront-composition-system.md) — patrz sekcja "Relacja do composition-system" niżej
@@ -90,15 +90,15 @@ Jawny plik w repo sklepu: `storeId`, `name`, `runtime`, `apiContract`, `capabili
 
 **Zmiana 2026-07-13:** kolejność poniżej jest przepisana względem pierwszej wersji tego planu na bardziej optymalną — front-loaduje naprawę fundamentu (bezpieczna wielosklepowość w backendzie) przed jakimkolwiek wydzielaniem pakietów czy automatyzacją, bo audyt kodu (patrz `docs/stan-projektu.md`, `docs/engine-decisions.md`) wykrył, że fundament ma krytyczny, nieznany wcześniej bug. Etap 1 jest też odchudzony — nie budujemy od razu wszystkich ośmiu pakietów `@sklepik/*`, tylko SDK/kontrakty + testy + cienki starter; reszta (`cart-core`, `checkout-core`, `checkout-ui`, `webhooks`, `observability`, `cli`) powstaje wtedy, gdy pilot z Etapu 3 faktycznie ich potrzebuje, nie z wyprzedzeniem.
 
-**Etap 0 — bezpieczna obsługa wielu sklepów w backendzie (CZĘŚCIOWO ZROBIONE na gałęzi `claude/plan-review-improvement-cpj6fw`, 2026-07-13; kod napisany, testy NIEURUCHOMIONE lokalnie — do odpalenia przed mergem, P0).** Status per punkt oznaczony niżej. Konkretne poprawki, wszystkie muszą iść razem (naprawa samej `FindDefault` bez poprawienia sąsiadów zamieniłaby dzisiejszy fail-closed w fail-open):
-- ✅ **[zrobione na gałęzi]** Naprawić rozpoznawanie sklepu: `Spree::Stores::FindDefault` używa teraz `url:` (host) do znalezienia sklepu (`store_for_url` normalizuje host i dopasowuje do `Store#url`), z fallbackiem na default gdy host nie pasuje — zachowuje dzisiejsze zachowanie jednego sklepu. Mechanizm docelowy: dopasowanie po `Store#url`.
-- ⬜ **[pozostaje]** Powiązać klucz API ze sklepem niezależnie od `current_store`: dziś `authenticate_api_key!` (`api_key_authentication.rb:19`) szuka klucza *wewnątrz* `current_store.api_keys`. Po naprawie `FindDefault` (host → store → jego klucze) to działa dla storefrontów rozpoznawanych po domenie; osobna ścieżka „klucz wyznacza store" pozostaje do rozważenia dla frontendów nieopierających się na hoście. Nie blokuje modelu „domena per sklep".
-- ✅ **[zrobione na gałęzi]** Odseparować cache: `collection_cache_key` ma `current_store&.id` na początku klucza; `set_vary_headers` dołożył `x-spree-api-key` do `Vary` (`http_caching.rb`). Test rozdzielenia ETag per sklep dodany.
+**Etap 0 — bezpieczna obsługa wielu sklepów w backendzie (WDROŻONY + lokalne utwardzenie gotowe do publikacji, 2026-07-13).** Host resolution, tenant-aware cache i backendowy EUR sync są na produkcji. Bieżący zestaw dodaje rozwiązywanie sklepu bezpośrednio z aktywnego publishable API key, odrzucanie sprzecznego hosta/`X-Spree-Store-Id`, pełniejszy kontekst `Vary`/ETag oraz atomowy bootstrap sklepu. Zweryfikowane lokalnie: 50 przykładów RSpec, 0 failures.
+- ✅ Rozpoznawanie po hoście: `Spree::Stores::FindDefault` normalizuje host i dopasowuje `Store#url`, z kompatybilnym fallbackiem na default.
+- ✅ Klucz API wyznacza sklep niezależnie od wcześniejszego `current_store`: `StoreResolution` wyszukuje globalnie unikalny aktywny publishable key i ustawia tenant przed autoryzacją. Sprzeczny `X-Spree-Store-Id` lub host należący do innego sklepu kończy request bez przełączenia tenantów.
+- ✅ Cache tenant-aware: ETag obejmuje store/market/channel/currency/locale, a `Vary` zachowuje istniejące nagłówki i rozdziela klucz, store, channel, currency oraz locale.
 - 🔶 **[udokumentowane, świadomie niezmienione]** `Spree::Base.for_store` (`base.rb:34`): cichy fallback jest load-bearing (userzy globalni świadomie — `UserMethods.for_store` zwraca `self`); zmiana na „rzucaj błąd" złamałaby wiele modeli. Dodano komentarz-ostrzeżenie w kodzie zamiast zmiany zachowania — nowy model tenant-scoped musi mieć relację na `Store`.
-- ✅ **[zrobione na gałęzi]** Owinąć `Admin::StoresController#create` w transakcję (`save!` + `add_user` atomowo).
+- ✅ `Admin::StoresController#create` jest atomowe (`save!` + `add_user` w transakcji); request spec potwierdza rollback po błędzie przypisania właściciela.
 - ⬜ **[pozostaje]** Dodać pełne testy dwóch tenantów: katalog, koszyk, klienci, zamówienia, cache, klucze API — żaden nie przecieka między sklepami. (Dodano testy jednostkowe: `FindDefault` po hoście, ETag per sklep; pełny integracyjny test dwóch tenantów wciąż do napisania.)
 - ✅ **[decyzja podjęta 2026-07-13]** Konta klientów: **osobne per sklep** (decyzja właściciela). To osobny, większy plan — `docs/plans/per-store-customer-accounts.md` — zależny od tego Etapu 0, częściowo w host-app (`server/`).
-- ⬜ **[pozostaje]** Domknąć resztę drobiazgów z Fazy 1: pusty 422 przy braku shipping coverage (`stan-projektu.md`), `rswag:specs:swaggerize` dla `/admin/stores`.
+- 🔶 Pusty 422 jest naprawiony przez `save!` i wspólny handler `RecordInvalid`; nadal pozostaje `rswag:specs:swaggerize` dla `/admin/stores`.
 - 🔶 **[backend zrobiony na gałęzi, front pozostaje]** Przenieść synchronizację cen EUR z `sklepikFront` do backendu: gotowe `Spree::Prices::SyncEurFromPln` + `Spree::Nbp::EurPlnRate` + rake `spree:prices:sync_eur_from_pln` (server-side, bez sekretu API), spec napisany. **Pozostaje (poza tym repo):** usunąć trasę `src/app/api/cron/sync-eur-prices/route.ts` + `SPREE_ADMIN_SECRET_KEY` z `sklepikFront`, zaplanować rake task (sidekiq-cron/system cron).
 
 **Etap 1 — stabilny kontrakt backend-frontend (WDROŻONY 2026-07-13).** Rozszerzono istniejący `@spree/sdk` o typy Store Factory (bez budowania odrębnego pakietu, bez zmian w konsumentach). Zrobione:
@@ -106,6 +106,7 @@ Jawny plik w repo sklepu: `storeId`, `name`, `runtime`, `apiContract`, `capabili
 - **`@sklepik/test-contracts` package** — testy izolacji tenantów (`testProductIsolation`, `testCartIsolation`, `testApiKeyScope`, `testWebhookStoreContext`) + testy API kontraktu (`testStoreContract`, `testProductsContract`, `testCartContract`, `testErrorContract`)
 - Gate (gotowe do Etapu 2): `sklepikFront` da się przepiąć na nowy SDK bez zmian zachowania — typy są back-compatible, front importuje je identycznie (`import type { Product, Cart } from "@spree/sdk"`) — żaden kod frontu nie dotknięty, pure type-compatibility
 - Dokumentacja: sekcja "Pakiety" opisuje role każdego z nich; testy w `test-contracts` będą uruchamiane w Etapie 2 jako weryfikacja drugiego sklepu
+- **Utwardzenie 2026-07-13:** dodano brakujący importer `packages/test-contracts` do `pnpm-lock.yaml`; pakiet przepisano na rzeczywisty interfejs `@spree/sdk` (SDK rzuca błędy i używa `carts`, nie wrapperów `success/data`), usunięto fikcyjne klucze/produkty z runtime testów, a wymagane fixture'y drugiego sklepu są jawne w konfiguracji. Zweryfikowane: frozen install, typecheck, build oraz 5/5 testów jednostkowych.
 
 **Etap 2 — ręczny sklep pilotażowy (nie rozpoczęty).** Utworzyć drugi sklep z osobnym repo, osobnym projektem Vercel, osobną domeną i kluczem, wyraźnie innym wyglądem. Sprawdzić: katalog, koszyk, checkout, wdrożenie, aktualizację przez PR, **prawdziwie wykonany rollback** (nie tylko przetestowany teoretycznie).
 
@@ -119,10 +120,9 @@ Dwa sklepy działają na wspólnym Spree bez żadnego przecieku danych; mogą by
 
 ## Constraints on Current Work
 
-- Store Factory jako całość (Etapy 1-4) jest decyzją o modelu docelowym, nie zadaniem do wykonania teraz — realizacja czeka na zamknięcie P0/P1 z Fazy 1 (Kakao MVP: Stripe, strony prawne) z `roadmap.md`.
+- Etapy 0-1 są wykonane. Etap 2 (ręczny pilot) można przygotować, ale promocja prawdziwego sklepu do sprzedaży nadal wymaga domknięcia Stripe, stron prawnych i pełnego checkout E2E z `roadmap.md`.
 - **Wyjątek: Etap 0 (bezpieczna wielosklepowość w backendzie) nie jest wyłącznie przygotowaniem pod Store Factory — to już dziś istniejący dług/bug** (`FindDefault` ignoruje host, cache bez identyfikatora sklepu, `for_store` cichy brak scope'u, brak transakcji w `StoresController#create`), zapisany w `docs/stan-projektu.md`. Może i powinien być naprawiony niezależnie od tempa reszty planu, bo dotyczy już zaimplementowanej (F25) wielosklepowości panelu, nie tylko przyszłych niezależnych storefrontów.
-- `sklepikFront` pozostaje dziś jedynym, wspólnym repo storefrontu — żadnych nowych repozytoriów per sklep, dopóki Etap 1 (wydzielenie `@sklepik/contracts`/`commerce-sdk`) nie jest gotowe i przetestowane na istniejącym storefroncie.
-- Jeśli ktoś zacznie realnie wydzielać pakiety `@sklepik/*` z `sklepikFront` (Etap 1), musi to robić bez zmiany zachowania użytkownika — to jest gate przed Etapem 2, nie opcjonalny refaktor.
+- `sklepikFront` pozostaje dziś jedynym produkcyjnym storefrontem. Następne repo może powstać wyłącznie jako jawny ręczny pilot Etapu 2, z osobnym kluczem, Vercel i wykonaniem `@sklepik/test-contracts` na dwóch realnych tenantach.
 - `docs/plans/storefront-composition-system.md` pozostaje jako opis trybu `managed` — nie budować go jako alternatywnego modelu docelowego dla niezależnych sklepów.
 
 ## Open Questions

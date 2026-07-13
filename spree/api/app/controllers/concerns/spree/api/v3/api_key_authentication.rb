@@ -16,7 +16,7 @@ module Spree
         #
         # @return [Boolean] true if authentication succeeded, false otherwise
         def authenticate_api_key!
-          @current_api_key = current_store.api_keys.active.publishable.find_by(token: extract_api_key)
+          @current_api_key ||= current_store.api_keys.active.publishable.find_by(token: extract_api_key)
 
           unless @current_api_key
             render_error(
