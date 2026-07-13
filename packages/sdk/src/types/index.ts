@@ -311,3 +311,15 @@ export interface ProductFiltersParams {
   category_id?: string
   q?: Record<string, unknown>
 }
+
+// Store Factory multi-tenant contract types (Etap 1+)
+export type {
+  ApiKey,
+  ApiKeyScope,
+  MultiStoreContext,
+  StoreContext,
+  StoreFactoryManifest,
+  TenantId,
+  TenantIsolationVerification,
+  WebhookEvent,
+} from './store-factory-contracts'
