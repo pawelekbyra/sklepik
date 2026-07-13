@@ -104,7 +104,7 @@ Jawny plik w repo sklepu: `storeId`, `name`, `runtime`, `apiContract`, `capabili
 **Etap 1 — stabilny kontrakt backend-frontend (WDROŻONY 2026-07-13).** Rozszerzono istniejący `@spree/sdk` o typy Store Factory (bez budowania odrębnego pakietu, bez zmian w konsumentach). Zrobione:
 - **Store Factory contract types** w `@spree/sdk/src/types/store-factory-contracts.ts`: `TenantId`, `ApiKey`, `StoreContext`, `MultiStoreContext`, `TenantIsolationVerification`, `WebhookEvent`, `StoreFactoryManifest` — wszystkie exportowane ze SDK pod `@spree/sdk`
 - **`@sklepik/test-contracts` package** — testy izolacji tenantów (`testProductIsolation`, `testCartIsolation`, `testApiKeyScope`, `testWebhookStoreContext`) + testy API kontraktu (`testStoreContract`, `testProductsContract`, `testCartContract`, `testErrorContract`)
-- Gate: `sklepikFront` przepiąty na nowy SDK bez zmian zachowania — typy są back-compatible, front importuje je identycznie (`import type { Product, Cart } from "@spree/sdk"`)
+- Gate (gotowe do Etapu 2): `sklepikFront` da się przepiąć na nowy SDK bez zmian zachowania — typy są back-compatible, front importuje je identycznie (`import type { Product, Cart } from "@spree/sdk"`) — żaden kod frontu nie dotknięty, pure type-compatibility
 - Dokumentacja: sekcja "Pakiety" opisuje role każdego z nich; testy w `test-contracts` będą uruchamiane w Etapie 2 jako weryfikacja drugiego sklepu
 
 **Etap 2 — ręczny sklep pilotażowy (nie rozpoczęty).** Utworzyć drugi sklep z osobnym repo, osobnym projektem Vercel, osobną domeną i kluczem, wyraźnie innym wyglądem. Sprawdzić: katalog, koszyk, checkout, wdrożenie, aktualizację przez PR, **prawdziwie wykonany rollback** (nie tylko przetestowany teoretycznie).
