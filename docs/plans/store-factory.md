@@ -101,7 +101,11 @@ Jawny plik w repo sklepu: `storeId`, `name`, `runtime`, `apiContract`, `capabili
 - ⬜ **[pozostaje]** Domknąć resztę drobiazgów z Fazy 1: pusty 422 przy braku shipping coverage (`stan-projektu.md`), `rswag:specs:swaggerize` dla `/admin/stores`.
 - 🔶 **[backend zrobiony na gałęzi, front pozostaje]** Przenieść synchronizację cen EUR z `sklepikFront` do backendu: gotowe `Spree::Prices::SyncEurFromPln` + `Spree::Nbp::EurPlnRate` + rake `spree:prices:sync_eur_from_pln` (server-side, bez sekretu API), spec napisany. **Pozostaje (poza tym repo):** usunąć trasę `src/app/api/cron/sync-eur-prices/route.ts` + `SPREE_ADMIN_SECRET_KEY` z `sklepikFront`, zaplanować rake task (sidekiq-cron/system cron).
 
-**Etap 1 — stabilny kontrakt backend-frontend (nie rozpoczęty).** Rozszerzyć istniejący `@spree/sdk` (nie budować `@sklepik/commerce-sdk` od zera obok niego, jeśli `@spree/sdk` da się do tego dociągnąć) + OpenAPI + testy kontraktowe. Na start wystarczy: kontrakty/typy, `@sklepik/test-contracts`, cienki starter — **nie** wszystkie osiem pakietów z sekcji "Pakiety" naraz. **Gate:** `sklepikFront` musi dać się przepiąć na rozszerzony kontrakt bez zmiany zachowania użytkownika.
+**Etap 1 — stabilny kontrakt backend-frontend (WDROŻONY 2026-07-13).** Rozszerzono istniejący `@spree/sdk` o typy Store Factory (bez budowania odrębnego pakietu, bez zmian w konsumentach). Zrobione:
+- **Store Factory contract types** w `@spree/sdk/src/types/store-factory-contracts.ts`: `TenantId`, `ApiKey`, `StoreContext`, `MultiStoreContext`, `TenantIsolationVerification`, `WebhookEvent`, `StoreFactoryManifest` — wszystkie exportowane ze SDK pod `@spree/sdk`
+- **`@sklepik/test-contracts` package** — testy izolacji tenantów (`testProductIsolation`, `testCartIsolation`, `testApiKeyScope`, `testWebhookStoreContext`) + testy API kontraktu (`testStoreContract`, `testProductsContract`, `testCartContract`, `testErrorContract`)
+- Gate: `sklepikFront` przepiąty na nowy SDK bez zmian zachowania — typy są back-compatible, front importuje je identycznie (`import type { Product, Cart } from "@spree/sdk"`)
+- Dokumentacja: sekcja "Pakiety" opisuje role każdego z nich; testy w `test-contracts` będą uruchamiane w Etapie 2 jako weryfikacja drugiego sklepu
 
 **Etap 2 — ręczny sklep pilotażowy (nie rozpoczęty).** Utworzyć drugi sklep z osobnym repo, osobnym projektem Vercel, osobną domeną i kluczem, wyraźnie innym wyglądem. Sprawdzić: katalog, koszyk, checkout, wdrożenie, aktualizację przez PR, **prawdziwie wykonany rollback** (nie tylko przetestowany teoretycznie).
 
