@@ -99,6 +99,7 @@ Jawny plik w repo sklepu: `storeId`, `name`, `runtime`, `apiContract`, `capabili
 - Dodać pełne testy dwóch tenantów: katalog, koszyk, klienci, zamówienia, cache, klucze API — żaden nie przecieka między sklepami.
 - **Ustalić decyzję produktową:** czy konta klientów są wspólne dla platformy, czy osobne per sklep (nierozstrzygnięte — wpływa na model danych `Customer`/`User` przed dalszymi etapami).
 - Domknąć resztę drobiazgów z Fazy 1 przy okazji: pusty 422 przy braku shipping coverage (`stan-projektu.md`), `rswag:specs:swaggerize` dla `/admin/stores`.
+- Przenieść logikę biznesową trzymaną dziś w `sklepikFront` do backendu: `src/app/api/cron/sync-eur-prices/route.ts` (zweryfikowane w kodzie 2026-07-13) trzyma `SPREE_ADMIN_SECRET_KEY` i sam woła `admin/prices/bulk_upsert` z repo frontendu, bo w momencie pisania Sidekiq był niedostępny na Render — powód już nieaktualny (Sidekiq działa na Oracle od F7/F8). Zasada "AI/kod klienta nigdy nie dostaje szerokich sekretów administracyjnych" z tego planu dotyczy też istniejącego kodu, nie tylko przyszłych sandboxów AI.
 
 **Etap 1 — stabilny kontrakt backend-frontend (nie rozpoczęty).** Rozszerzyć istniejący `@spree/sdk` (nie budować `@sklepik/commerce-sdk` od zera obok niego, jeśli `@spree/sdk` da się do tego dociągnąć) + OpenAPI + testy kontraktowe. Na start wystarczy: kontrakty/typy, `@sklepik/test-contracts`, cienki starter — **nie** wszystkie osiem pakietów z sekcji "Pakiety" naraz. **Gate:** `sklepikFront` musi dać się przepiąć na rozszerzony kontrakt bez zmiany zachowania użytkownika.
 
