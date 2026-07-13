@@ -15,7 +15,8 @@ const STEP_ORDER = [
 function StepIcon({ status }: { status: ProvisioningStepStatus | 'pending' }) {
   if (status === 'done') return <CheckIcon className="size-4 text-green-600 dark:text-green-400" />
   if (status === 'failed') return <XIcon className="size-4 text-destructive" />
-  if (status === 'in_progress') return <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
+  if (status === 'in_progress')
+    return <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
   return <CircleDashedIcon className="size-4 text-muted-foreground/50" />
 }
 

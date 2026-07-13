@@ -30,7 +30,8 @@ export function useStartProvisioning() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (storeId: string): Promise<ProvisioningRun> => adminClient.provisioningRun.start(storeId),
+    mutationFn: (storeId: string): Promise<ProvisioningRun> =>
+      adminClient.provisioningRun.start(storeId),
     onSuccess: (run, storeId) => {
       queryClient.setQueryData(provisioningRunQueryKey(storeId), run)
     },

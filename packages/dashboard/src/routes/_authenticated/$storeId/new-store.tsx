@@ -26,8 +26,8 @@ import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { type NewStoreFormValues, newStoreFormSchema } from '@/schemas/new-store'
 import { ProvisioningStatusCard } from '@/components/store-factory/provisioning-status-card'
+import { type NewStoreFormValues, newStoreFormSchema } from '@/schemas/new-store'
 
 export const Route = createFileRoute('/_authenticated/$storeId/new-store')({
   component: NewStorePage,
@@ -236,7 +236,10 @@ function NewStorePage() {
                       )}
                     />
                     <div>
-                      <FieldLabel htmlFor="new-store-provision-storefront" className="cursor-pointer mb-0">
+                      <FieldLabel
+                        htmlFor="new-store-provision-storefront"
+                        className="cursor-pointer mb-0"
+                      >
                         {t('admin.pages.new_store.provision_storefront_label')}
                       </FieldLabel>
                       <p className="text-sm text-muted-foreground mt-1">
