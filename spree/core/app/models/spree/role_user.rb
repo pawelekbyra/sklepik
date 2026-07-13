@@ -37,5 +37,18 @@ module Spree
     def set_default_resource
       self.resource ||= Spree::Store.current
     end
+
+    # Overrides `SingleStoreResource#ensure_store`, which defaults blank
+    # `store` to `Spree::Current.store`. A `RoleUser`'s polymorphic
+    # `resource` can itself be the `Store` the role was granted on (the
+    # common case: an admin role directly on a store) — in that case
+    # `resource` IS the store the role scopes to, and falling back to
+    # whatever store happened to be "current" at creation time would
+    # silently bind the role to the wrong store (e.g. an admin granted a
+    # role on a newly created store would fail the `store_id` membership
+    # check used to authorize requests for that store).
+    def ensure_store
+      self.store ||= resource.is_a?(Spree::Store) ? resource : Spree::Current.store
+    end
   end
 end

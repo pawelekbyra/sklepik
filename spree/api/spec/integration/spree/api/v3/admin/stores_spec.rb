@@ -76,6 +76,18 @@ RSpec.describe 'Admin Stores API', type: :request, swagger_doc: 'api-reference/a
           }
         end
 
+        # `default_country_iso` drives the `after_create` default-market
+        # bootstrap (`Spree::Stores::Markets#ensure_default_market`), which
+        # requires the country to already have shipping coverage somewhere
+        # in the system (`Spree::MarketCountry#country_covered_by_shipping_zone`)
+        # — same fixture shape as `spree/core/spec/models/spree/store_spec.rb`.
+        before do
+          country = Spree::Country.find_by(iso: 'US') || create(:country, iso: 'US')
+          zone = create(:zone, name: 'US Zone', kind: 'country')
+          zone.zone_members.create!(zoneable: country)
+          create(:shipping_method, zones: [zone])
+        end
+
         schema '$ref' => '#/components/schemas/Store'
 
         run_test! do |response|
