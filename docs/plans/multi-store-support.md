@@ -64,7 +64,7 @@ Faza 2 (storefront po domenie) i Faza 3 (self-service + billing) mają dostać w
 
 ## Open Questions
 
-- Faza 2: czy jeden deployment Next.js ma obsługiwać wiele domen (middleware rozpoznający `Host`), czy zostajemy przy "jeden deployment per sklep" na stałe? Nie rozstrzygamy teraz.
+- Faza 2: czy jeden deployment Next.js ma obsługiwać wiele domen (middleware rozpoznający `Host`), czy zostajemy przy "jeden deployment per sklep" na stałe? Nie rozstrzygamy teraz. Docelowa, bardziej ambitna wersja tej ścieżki — pełna niezależność wizualna sklepu (layout/styl jako dane, nie kod, bez forkowania repo) — rozpisana osobno w [`storefront-composition-system.md`](storefront-composition-system.md).
 - Faza 3: model rozliczeń (Stripe Billing? Ile planów?), kto może zawiesić sklep za brak płatności, jak wygląda deprovisioning. Świadomie odłożone do decyzji właściciela.
 - Czy sklepy mają mieć możliwość współdzielenia katalogu produktów (multi-store selling tego samego produktu) czy każdy sklep to w pełni odrębny katalog? Dzisiejszy model (`Product belongs_to :store`) zakłada to drugie — jeśli właściciel zechce współdzielony katalog, to osobna, większa decyzja architektoniczna.
 
