@@ -612,6 +612,18 @@ export interface InvitationAcceptParams {
   last_name?: string
 }
 
+/**
+ * Body for public, unauthenticated store signup (Store Factory self-service
+ * onboarding prototype — no email verification yet). Creates a new admin
+ * user + store in one step and starts automated storefront provisioning.
+ */
+export interface SignupParams {
+  store_name: string
+  email: string
+  password: string
+  password_confirmation: string
+}
+
 export interface AdminUserUpdateParams {
   first_name?: string
   last_name?: string

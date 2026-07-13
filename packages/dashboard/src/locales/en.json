@@ -1734,6 +1734,12 @@
       "sign_in_and_accept": "Sign in & accept",
       "create_and_accept": "Create account & accept"
     },
+    "signup": {
+      "title": "Create your store",
+      "subtitle": "Set up your account and store in seconds",
+      "submit": "Create store",
+      "submitting": "Creating store…"
+    },
     "staff": {
       "actions": {
         "copy_invitation_link": "Copy invitation link",

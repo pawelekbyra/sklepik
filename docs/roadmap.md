@@ -158,6 +158,8 @@ Dynamiczne rozpoznawanie sklepu po domenie w storefroncie to Faza 2, samoobsług
 
 **Etap 1 Store Factory — WDROŻONY + NAPRAWIONY (2026-07-13):** typy kontraktów są eksportowane z `@spree/sdk`; `@sklepik/test-contracts` jest w frozen lockfile i używa rzeczywistego API SDK. Typecheck, build i 5/5 testów jednostkowych przechodzą. Następny krok: Etap 2 — ręczny drugi sklep z realnym uruchomieniem kontraktów, osobnym repo/Vercel/domeną i wykonanym rollbackiem. Stripe, strony prawne i checkout E2E nadal blokują start sprzedaży, nie techniczne przygotowanie pilota.
 
+**Publiczny signup Store Factory — GOTOWY DO WDROŻENIA ZA FLAGĄ (2026-07-13):** panel ma publiczną trasę `/signup`, SDK metodę `auth.signup`, a backend publiczny `POST /api/v3/admin/auth/signup`. Jedna transakcja tworzy administratora, sklep z tymczasowym adresem `<code>.vercel.app` i provisioning run; job po gotowym deploymencie zapisuje prawdziwy host. `STORE_SIGNUP_ENABLED=false` jest bezpiecznym ustawieniem domyślnym. Zweryfikowane lokalnie: 4/4 przykłady RSpec, test kontraktu SDK i typecheck dashboardu. Do zamknięcia przed szerokim ruchem: realny E2E GitHub→Vercel, weryfikacja e-mail/CAPTCHA oraz decyzja o płatności/limitach planu.
+
 ## Faza 2 — Kakao MVP
 
 Start dopiero po zamknięciu P0 i P1 z Fazy 1.

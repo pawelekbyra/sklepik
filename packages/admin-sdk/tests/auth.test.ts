@@ -62,4 +62,43 @@ describe('auth', () => {
       expect(hit).toBe(true)
     })
   })
+
+  describe('signup', () => {
+    it('creates a store and returns the authenticated provisioning context', async () => {
+      let observedBody: Record<string, unknown> | null = null
+      server.use(
+        http.post(`${API_PREFIX}/auth/signup`, async ({ request }) => {
+          observedBody = (await request.json()) as Record<string, unknown>
+          return HttpResponse.json(
+            {
+              token: 'signup_jwt',
+              user: {
+                id: 'usr_owner',
+                email: 'owner@example.com',
+                first_name: null,
+                last_name: null,
+              },
+              store_id: 'store_new',
+              provisioning_run_id: 'prun_new',
+            },
+            { status: 201 },
+          )
+        }),
+      )
+
+      const client = createUnauthenticatedClient()
+      const params = {
+        store_name: 'Nowy Sklep',
+        email: 'owner@example.com',
+        password: 'password123',
+        password_confirmation: 'password123',
+      }
+      const res = await client.auth.signup(params)
+
+      expect(observedBody).toEqual(params)
+      expect(res.token).toBe('signup_jwt')
+      expect(res.store_id).toBe('store_new')
+      expect(res.provisioning_run_id).toBe('prun_new')
+    })
+  })
 })

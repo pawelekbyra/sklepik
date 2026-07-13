@@ -1,4 +1,5 @@
 import { i18n } from '@spree/dashboard-core'
+import { requiredMessage } from '@spree/dashboard-ui'
 import { z } from 'zod/v4'
 
 // Lazy message factories — Zod v4 accepts `{ error: () => string }` as an
@@ -41,3 +42,17 @@ export const acceptInvitationSignUpFormSchema = z
     path: ['password_confirmation'],
   })
 export type AcceptInvitationSignUpFormValues = z.infer<typeof acceptInvitationSignUpFormSchema>
+
+/** Store Factory self-service signup (prototype, no email verification). */
+export const storeSignupFormSchema = z
+  .object({
+    store_name: z.string().min(1, { error: requiredMessage('store.name') }),
+    email: z.email(),
+    password: z.string().min(8, { error: passwordMinLength }),
+    password_confirmation: z.string(),
+  })
+  .refine((data) => data.password === data.password_confirmation, {
+    error: passwordsDontMatch,
+    path: ['password_confirmation'],
+  })
+export type StoreSignupFormValues = z.infer<typeof storeSignupFormSchema>

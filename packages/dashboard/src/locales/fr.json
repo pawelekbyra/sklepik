@@ -1687,6 +1687,12 @@
       "sign_in_and_accept": "Se connecter et accepter",
       "create_and_accept": "Créer un compte et accepter"
     },
+    "signup": {
+      "title": "Créer votre boutique",
+      "subtitle": "Configurez votre compte et votre boutique en quelques secondes",
+      "submit": "Créer la boutique",
+      "submitting": "Création de la boutique…"
+    },
     "staff": {
       "actions": {
         "copy_invitation_link": "Copier le lien d'invitation",

@@ -1687,6 +1687,12 @@
       "sign_in_and_accept": "Anmelden & annehmen",
       "create_and_accept": "Konto erstellen & annehmen"
     },
+    "signup": {
+      "title": "Shop erstellen",
+      "subtitle": "Konto und Shop in Sekunden einrichten",
+      "submit": "Shop erstellen",
+      "submitting": "Shop wird erstellt…"
+    },
     "staff": {
       "actions": {
         "copy_invitation_link": "Einladungslink kopieren",

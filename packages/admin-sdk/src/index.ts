@@ -11,6 +11,7 @@ export type {
   PermissionRule,
   ProductReadiness,
   ProductReadinessCheck,
+  SignupResponse,
 } from './admin-client'
 // Admin client class (for advanced use / subclassing)
 export { AdminClient } from './admin-client'

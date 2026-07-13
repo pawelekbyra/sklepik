@@ -62,6 +62,11 @@ export interface AuthTokens {
   user: AdminUser
 }
 
+export interface SignupResponse extends AuthTokens {
+  store_id: string
+  provisioning_run_id: string
+}
+
 export interface PermissionRule {
   /** true for `can`, false for `cannot` */
   allow: boolean
@@ -152,6 +157,7 @@ import type {
   PromotionRuleUpdateParams,
   PromotionUpdateParams,
   ResourceTypeDefinition,
+  SignupParams,
   StockItemUpdateParams,
   StockLocationCreateParams,
   StockLocationUpdateParams,
@@ -443,6 +449,15 @@ export class AdminClient {
         params: { token },
         body: params,
       }),
+
+    /**
+     * Public (unauthenticated) store signup — Store Factory self-service
+     * onboarding prototype, no email verification yet. Creates a new admin
+     * user + store, starts automated storefront provisioning, and issues a
+     * JWT + refresh-token cookie identical to `login`.
+     */
+    signup: (params: SignupParams, options?: RequestOptions): Promise<SignupResponse> =>
+      this.request<SignupResponse>('POST', '/auth/signup', { ...options, body: params }),
   }
 
   // ============================================
