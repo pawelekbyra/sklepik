@@ -11,7 +11,7 @@ RSpec.describe 'Admin Stores API', type: :request, swagger_doc: 'api-reference/a
     get 'List the stores this admin belongs to' do
       tags 'Stores'
       produces 'application/json'
-      security [api_key: [], bearer_auth: []]
+      security [bearer_auth: []]
       description 'Returns every store the authenticated admin holds a role on — the list a store switcher picks from before one is selected.'
 
       admin_sdk_example 'stores/list'
@@ -44,7 +44,7 @@ RSpec.describe 'Admin Stores API', type: :request, swagger_doc: 'api-reference/a
       tags 'Stores'
       consumes 'application/json'
       produces 'application/json'
-      security [api_key: [], bearer_auth: []]
+      security [bearer_auth: []]
       description 'Creates a new store and grants the requesting admin the admin role on it. Requires the admin to already hold the admin role on at least one existing store.'
 
       admin_sdk_example 'stores/create'
