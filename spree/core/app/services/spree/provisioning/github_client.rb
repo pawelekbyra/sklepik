@@ -11,11 +11,11 @@ module Spree
     # marked "Template repository" in GitHub settings (a one-time manual
     # toggle on sklepikFront, not something this client can set).
     #
-    # UNVERIFIED end-to-end: exercised against the real GitHub API only up to
-    # authentication (see docs/plans/store-factory.md, session 2026-07-13) —
-    # the create-from-template call itself was never run for real because the
-    # session that wrote this had no scope to create a repo. First live run
-    # should watch this closely.
+    # create_from_template VERIFIED live 2026-07-13 (docs/plans/store-factory.md
+    # Etap 2): requires a classic PAT (`repo` scope) and the
+    # X-GitHub-Api-Version header below — a fine-grained PAT (even with "All
+    # repositories" access and Administration: write) reliably 404s with
+    # "Invalid owner" on this endpoint regardless of scope breadth.
     class GithubClient
       API_BASE = 'https://api.github.com'.freeze
       TIMEOUT = 30
@@ -77,6 +77,7 @@ module Spree
         request['Authorization'] = "Bearer #{@token}"
         request['Accept'] = 'application/vnd.github+json'
         request['User-Agent'] = 'Kakalowy-Sklepik-Provisioning/1.0'
+        request['X-GitHub-Api-Version'] = '2022-11-28'
         if body
           request['Content-Type'] = 'application/json'
           request.body = body.to_json
