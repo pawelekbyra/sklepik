@@ -1706,6 +1706,12 @@
       "sign_in_and_accept": "Zaloguj się i zaakceptuj",
       "create_and_accept": "Utwórz konto i zaakceptuj"
     },
+    "signup": {
+      "title": "Załóż sklep",
+      "subtitle": "Utwórz konto i sklep w kilka sekund",
+      "submit": "Załóż sklep",
+      "submitting": "Zakładanie sklepu…"
+    },
     "staff": {
       "actions": {
         "copy_invitation_link": "Kopiuj link z zaproszeniem",

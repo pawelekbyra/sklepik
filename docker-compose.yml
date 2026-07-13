@@ -52,6 +52,7 @@ services:
       GITHUB_PROVISIONING_TOKEN: ${GITHUB_PROVISIONING_TOKEN}
       VERCEL_TOKEN: ${VERCEL_TOKEN}
       VERCEL_TEAM_ID: ${VERCEL_TEAM_ID}
+      STORE_SIGNUP_ENABLED: ${STORE_SIGNUP_ENABLED:-false}
     expose:
       - "3000"
     restart: unless-stopped
@@ -84,6 +85,7 @@ services:
       GITHUB_PROVISIONING_TOKEN: ${GITHUB_PROVISIONING_TOKEN}
       VERCEL_TOKEN: ${VERCEL_TOKEN}
       VERCEL_TEAM_ID: ${VERCEL_TEAM_ID}
+      STORE_SIGNUP_ENABLED: ${STORE_SIGNUP_ENABLED:-false}
     restart: unless-stopped
 
   nginx:

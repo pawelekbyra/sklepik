@@ -1,3 +1,7 @@
+# frozen_string_literal: true
+
+require 'uri'
+
 module Spree
   module Provisioning
     # Orchestrates one end-to-end provisioning attempt for a store's
@@ -17,10 +21,10 @@ module Spree
         new(run).call
       end
 
-      def initialize(run)
+      def initialize(run, github: GithubClient.new, vercel: VercelClient.new)
         @run = run
-        @github = GithubClient.new
-        @vercel = VercelClient.new
+        @github = github
+        @vercel = vercel
       end
 
       def call
@@ -28,17 +32,10 @@ module Spree
         project = create_vercel_project(repo_full_name)
         configure_environment(project['id'])
         deployment_url = wait_for_deployment(project['id'])
-
-        @run.update!(
-          repo_full_name: repo_full_name,
-          vercel_project_id: project['id'],
-          deployment_url: deployment_url,
-          status: 'active'
-        )
-      rescue GithubClient::Error, VercelClient::Error, Timeout::Error => e
-        @run.advance!(@run.status, step_status: 'failed', error_message: e.message)
-        Rails.error.report(e, context: { provisioning_run_id: @run.id, store_id: @run.store_id })
-        raise
+        activate!(repo_full_name, project['id'], deployment_url)
+      rescue GithubClient::Error, VercelClient::Error, Timeout::Error, URI::InvalidURIError,
+             ActiveRecord::RecordInvalid => e
+        fail!(e)
       end
 
       private
@@ -50,7 +47,12 @@ module Spree
           template_repo: @run.template_repo,
           new_repo_name: repo_name
         )
+        wait_for_repository(full_name)
+        @run.advance!('creating_repository', step_status: 'done')
+        full_name
+      end
 
+      def wait_for_repository(full_name)
         # GitHub's "generate from template" is async; give it a few tries
         # before handing an incompletely-materialized repo to Vercel.
         10.times do
@@ -58,9 +60,20 @@ module Spree
 
           sleep 2
         end
+      end
 
-        @run.advance!('creating_repository', step_status: 'done')
-        full_name
+      def activate!(repo_full_name, project_id, deployment_url)
+        ActiveRecord::Base.transaction do
+          @run.store.update!(url: URI.parse(deployment_url).host)
+          @run.update!(repo_full_name: repo_full_name, vercel_project_id: project_id,
+                       deployment_url: deployment_url, status: 'active')
+        end
+      end
+
+      def fail!(error)
+        @run.advance!(@run.status, step_status: 'failed', error_message: error.message)
+        Rails.error.report(error, context: { provisioning_run_id: @run.id, store_id: @run.store_id })
+        raise error
       end
 
       def create_vercel_project(repo_full_name)

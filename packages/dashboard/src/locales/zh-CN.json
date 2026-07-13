@@ -1735,6 +1735,12 @@
       "sign_in_and_accept": "登录并接受",
       "create_and_accept": "创建账户并接受"
     },
+    "signup": {
+      "title": "创建您的商店",
+      "subtitle": "几秒钟内设置您的账户和商店",
+      "submit": "创建商店",
+      "submitting": "正在创建商店…"
+    },
     "staff": {
       "actions": {
         "copy_invitation_link": "复制邀请链接",

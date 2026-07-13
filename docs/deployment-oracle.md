@@ -189,3 +189,13 @@ Po utworzeniu instancji i potwierdzeniu publicznego IP:
 - ✅ `docs/architektura.md` opisuje Oracle jako produkcyjny backend.
 
 **Nie zrobione trwale (znane ryzyko):** firewall hosta (`iptables`) nie ma trwałych reguł dla portów 80/443 (brak `iptables-persistent`, patrz sekcja SSL wyżej) — po reboocie serwera trzeba je dodać ponownie.
+
+## Publiczny signup Store Factory
+
+Kod można wdrożyć bez otwierania rejestracji. Domyślne ustawienie przed pierwszym E2E:
+
+```env
+STORE_SIGNUP_ENABLED=false
+```
+
+Przed zmianą na `true` na Oracle należy bez wypisywania wartości potwierdzić obecność `GITHUB_PROVISIONING_TOKEN`, `VERCEL_TOKEN`, `VERCEL_TEAM_ID` i `SPREE_API_URL`, upewnić się, że `pawelekbyra/sklepikFront` jest repozytorium-template, oraz wykonać kontrolowany test GitHub→Vercel. Po zmianie flagi trzeba odtworzyć co najmniej kontener `web`; `sidekiq` również powinien dostać te same zmienne provisioningu. Rollback rejestracji nie wymaga cofania kodu: ustawić `STORE_SIGNUP_ENABLED=false` i odtworzyć `web`. Istniejące sklepy i uruchomione joby nie są przez to usuwane ani anulowane.

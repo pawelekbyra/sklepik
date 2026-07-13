@@ -1,4 +1,4 @@
-import type { AdminUser, AuthTokens, InvitationAcceptParams } from '@spree/admin-sdk'
+import type { AdminUser, AuthTokens, InvitationAcceptParams, SignupParams } from '@spree/admin-sdk'
 import { createContext, type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { adminClient } from '../client'
 import { ADMIN_LOCALE_STORAGE_KEY, DEFAULT_ADMIN_LOCALE, switchLocale } from '../lib/i18n'
@@ -12,6 +12,12 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
   acceptInvitation: (id: string, token: string, params: InvitationAcceptParams) => Promise<void>
+  /**
+   * Store Factory self-service signup (prototype, no email verification).
+   * Returns the new store's prefixed ID so the caller can show provisioning
+   * progress for it right away.
+   */
+  signup: (params: SignupParams) => Promise<{ storeId: string }>
   /**
    * Merge updated fields into the authenticated user (e.g. after a profile
    * save) so context consumers like the top-bar reflect the change immediately
@@ -130,6 +136,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [establish],
   )
 
+  const signup = useCallback(
+    async (params: SignupParams): Promise<{ storeId: string }> => {
+      setIsLoading(true)
+      try {
+        const res = await adminClient.auth.signup(params)
+        applySession(res.token, res.user)
+        scheduleRefresh()
+        return { storeId: res.store_id }
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [applySession, scheduleRefresh],
+  )
+
   const logout = useCallback(async () => {
     try {
       await adminClient.auth.logout()
@@ -170,6 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         acceptInvitation,
+        signup,
         updateUser,
       }}
     >

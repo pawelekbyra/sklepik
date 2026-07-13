@@ -137,6 +137,10 @@ Spree::Core::Engine.add_routes do
         get 'auth/invitations/:id/lookup', to: 'invitation_acceptances#lookup'
         post 'auth/invitations/:id/accept', to: 'invitation_acceptances#accept'
 
+        # Public store signup — Store Factory self-service onboarding
+        # prototype (docs/plans/store-factory.md), no email verification yet.
+        post 'auth/signup', to: 'signups#create'
+
         # Dashboard
         namespace :dashboard do
           get :analytics

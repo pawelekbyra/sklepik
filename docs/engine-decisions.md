@@ -247,3 +247,29 @@ Logika cen i sekrety należą do zaufanego backendu, nie do repo storefrontu. Wy
 ### Wpływ na upstream
 
 Brak — nowy kod specyficzny dla forka (integracja NBP/PLN↔EUR).
+
+## 2026-07-13 — Publiczny signup Store Factory za flagą
+
+### Status
+
+Gotowy do wdrożenia, domyślnie wyłączony.
+
+### Kontekst
+
+Zewnętrzny właściciel sklepu potrzebuje założyć konto i uruchomić provisioning bez wcześniejszego konta administracyjnego. Istniejący `Admin::StoresController` wymaga już zalogowanego administratora, więc nie może obsłużyć pierwszego wejścia.
+
+### Decyzja
+
+Dodano publiczny `POST /api/v3/admin/auth/signup`, który w jednej transakcji tworzy konto administratora, sklep, przypisanie roli i `ProvisioningRun`, a po commicie enqueue'uje job i wydaje standardową sesję admina. Dostęp kontroluje `STORE_SIGNUP_ENABLED` (domyślnie `false`), a endpoint używa limitu żądań logowania. Hasło jest walidowane niezależnie od użytej klasy admin usera: wymagane jest minimum 8 znaków i zgodne potwierdzenie. Sklep zaczyna z adresem `<code>.vercel.app`; po gotowym deploymencie serwis zapisuje rzeczywisty host Vercela.
+
+### Uzasadnienie
+
+To rozszerzenie Admin API i istniejącego provisioningu, bez przenoszenia logiki commerce do dashboardu. Transakcja zapobiega osieroconym kontom/sklepom, a flaga pozwala wdrożyć kod przed bezpiecznym uruchomieniem zewnętrznych integracji.
+
+### Wpływ na upstream
+
+Nowy endpoint i flaga są specyficzne dla tego forka. Store API i checkout nie zmieniają kontraktu; `sklepikFront` nie wymaga zmian. `@spree/admin-sdk` dostaje jedynie nową metodę `auth.signup`.
+
+### Notatki
+
+Przed publicznym włączeniem wymagane są realne E2E GitHub→Vercel oraz ochrona przed masowym zakładaniem kont (weryfikacja e-mail/CAPTCHA). Wyłączenie flagi zwraca 404 i nie wpływa na istniejące konta ani uruchomione joby.
