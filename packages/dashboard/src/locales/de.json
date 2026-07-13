@@ -1654,7 +1654,18 @@
         "title": "Neuer Shop",
         "subtitle": "Erstellen Sie einen weiteren Shop, der von diesem Dashboard aus verwaltet wird.",
         "success": "Shop erstellt",
-        "error": "Shop konnte nicht erstellt werden"
+        "error": "Shop konnte nicht erstellt werden",
+        "provision_storefront_label": "Storefront-App automatisch erstellen",
+        "provision_storefront_help": "Erstellt ein GitHub-Repository (aus der sklepikFront-Vorlage) und ein verknüpftes Vercel-Projekt und stellt es bereit — keine manuelle Einrichtung nötig.",
+        "provisioning_title": "Storefront wird eingerichtet",
+        "provisioning_step_creating_repository": "GitHub-Repository wird erstellt",
+        "provisioning_step_creating_vercel_project": "Vercel-Projekt wird erstellt",
+        "provisioning_step_configuring_environment": "Umgebungsvariablen werden konfiguriert",
+        "provisioning_step_deploying": "Bereitstellung",
+        "provisioning_active": "Storefront ist live",
+        "provisioning_failed": "Bereitstellung fehlgeschlagen",
+        "provisioning_visit_store": "Storefront öffnen",
+        "provisioning_continue_to_admin": "Weiter zum Store-Admin"
       }
     },
     "invitation": {

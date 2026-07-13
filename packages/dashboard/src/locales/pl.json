@@ -1673,7 +1673,18 @@
         "title": "Nowy sklep",
         "subtitle": "Załóż kolejny sklep zarządzany z tego panelu.",
         "success": "Sklep utworzony",
-        "error": "Nie udało się utworzyć sklepu"
+        "error": "Nie udało się utworzyć sklepu",
+        "provision_storefront_label": "Utwórz automatycznie aplikację storefrontu",
+        "provision_storefront_help": "Tworzy repozytorium GitHub (z template'u sklepikFront) i powiązany projekt Vercel, a następnie go wdraża — bez ręcznej konfiguracji.",
+        "provisioning_title": "Konfigurowanie storefrontu",
+        "provisioning_step_creating_repository": "Tworzenie repozytorium GitHub",
+        "provisioning_step_creating_vercel_project": "Tworzenie projektu Vercel",
+        "provisioning_step_configuring_environment": "Konfigurowanie zmiennych środowiskowych",
+        "provisioning_step_deploying": "Wdrażanie",
+        "provisioning_active": "Storefront działa",
+        "provisioning_failed": "Provisioning nie powiódł się",
+        "provisioning_visit_store": "Otwórz storefront",
+        "provisioning_continue_to_admin": "Przejdź do panelu sklepu"
       }
     },
     "invitation": {

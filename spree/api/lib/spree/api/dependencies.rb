@@ -208,6 +208,7 @@ module Spree
         admin_payment_source_serializer: 'Spree::Api::V3::Admin::PaymentSourceSerializer',
         admin_digital_link_serializer: 'Spree::Api::V3::Admin::DigitalLinkSerializer',
         admin_store_serializer: 'Spree::Api::V3::Admin::StoreSerializer',
+        admin_provisioning_run_serializer: 'Spree::Api::V3::Admin::ProvisioningRunSerializer',
         admin_api_key_serializer: 'Spree::Api::V3::Admin::ApiKeySerializer',
         admin_allowed_origin_serializer: 'Spree::Api::V3::Admin::AllowedOriginSerializer',
         admin_webhook_endpoint_serializer: 'Spree::Api::V3::Admin::WebhookEndpointSerializer',

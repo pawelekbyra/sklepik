@@ -1701,7 +1701,18 @@
         "title": "New store",
         "subtitle": "Create another store to manage from this dashboard.",
         "success": "Store created",
-        "error": "Failed to create store"
+        "error": "Failed to create store",
+        "provision_storefront_label": "Automatically create a storefront app",
+        "provision_storefront_help": "Creates a GitHub repository (from the sklepikFront template) and a linked Vercel project, then deploys it — no manual setup needed.",
+        "provisioning_title": "Setting up your storefront",
+        "provisioning_step_creating_repository": "Creating GitHub repository",
+        "provisioning_step_creating_vercel_project": "Creating Vercel project",
+        "provisioning_step_configuring_environment": "Configuring environment variables",
+        "provisioning_step_deploying": "Deploying",
+        "provisioning_active": "Storefront is live",
+        "provisioning_failed": "Provisioning failed",
+        "provisioning_visit_store": "Open storefront",
+        "provisioning_continue_to_admin": "Continue to store admin"
       }
     },
     "invitation": {

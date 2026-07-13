@@ -82,3 +82,11 @@ export type {
   TranslationBatchEntry,
   TranslationsUpsertParams,
 } from './translations'
+
+// Hand-written Store Factory provisioning types (controller-shaped, not generated)
+export type {
+  ProvisioningRun,
+  ProvisioningRunStatus,
+  ProvisioningStep,
+  ProvisioningStepStatus,
+} from './provisioning'

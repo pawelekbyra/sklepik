@@ -150,7 +150,13 @@ Spree::Core::Engine.add_routes do
         # Store Settings
         resource :store, only: [:show, :update], controller: 'store'
         # Cross-store: which stores this admin belongs to, and creating new ones
-        resources :stores, only: [:index, :create], controller: 'stores'
+        resources :stores, only: [:index, :create], controller: 'stores' do
+          # Store Factory (docs/plans/store-factory.md): provisions an
+          # independent storefront app (GitHub repo + Vercel project) for
+          # this store. Singleton — one active attempt tracked at a time,
+          # `show` polls the latest.
+          resource :provisioning_run, only: [:show, :create], controller: 'provisioning_runs'
+        end
 
         # Staff & access (invitations, admin users, roles, API keys)
         resources :admin_users, only: [:index, :show, :update, :destroy]
