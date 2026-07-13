@@ -88,27 +88,34 @@ Jawny plik w repo sklepu: `storeId`, `name`, `runtime`, `apiContract`, `capabili
 
 ## Migration Path
 
-Kolejność redukuje ryzyko: najpierw kontrakt i update path, dopiero potem mnożenie repozytoriów.
+**Zmiana 2026-07-13:** kolejność poniżej jest przepisana względem pierwszej wersji tego planu na bardziej optymalną — front-loaduje naprawę fundamentu (bezpieczna wielosklepowość w backendzie) przed jakimkolwiek wydzielaniem pakietów czy automatyzacją, bo audyt kodu (patrz `docs/stan-projektu.md`, `docs/engine-decisions.md`) wykrył, że fundament ma krytyczny, nieznany wcześniej bug. Etap 1 jest też odchudzony — nie budujemy od razu wszystkich ośmiu pakietów `@sklepik/*`, tylko SDK/kontrakty + testy + cienki starter; reszta (`cart-core`, `checkout-core`, `checkout-ui`, `webhooks`, `observability`, `cli`) powstaje wtedy, gdy pilot z Etapu 3 faktycznie ich potrzebuje, nie z wyprzedzeniem.
 
-**Etap 0 — fundament (nie rozpoczęty).** Domknąć OpenAPI/typy dla stores, naprawić pusty 422 przy braku shipping coverage (`stan-projektu.md` pkt "Wielosklepowość — pusty komunikat błędu"), test izolacji dwóch sklepów, zdefiniować `application_mode` (`managed`/`independent_storefront`/`dedicated_stack`) w modelu `StoreApplication`.
+**Etap 0 — bezpieczna obsługa wielu sklepów w backendzie (nie rozpoczęty, P0).** Konkretne poprawki, wszystkie muszą iść razem (naprawa samej `FindDefault` bez poprawienia sąsiadów zamieniłaby dzisiejszy fail-closed w fail-open):
+- Naprawić rozpoznawanie sklepu: `Spree::Stores::FindDefault` (`spree/core/app/finders/spree/stores/find_default.rb:4`) ma faktycznie użyć `url:` (host) do znalezienia właściwego `Store`, zamiast go ignorować. Ustalić i udokumentować mechanizm docelowy — dopasowanie po `Store#url`, czy resolving po publishable key niezależnie od hosta (patrz punkt niżej) — to jest decyzja projektowa, nie tylko bugfix.
+- Powiązać klucz API ze sklepem w sposób niezależny od `current_store`: dziś `authenticate_api_key!` (`spree/api/app/controllers/concerns/spree/api/v3/api_key_authentication.rb:19`) szuka klucza *wewnątrz* `current_store.api_keys`, więc kolejność jest odwrócona względem tego, czego potrzeba (klucz powinien móc *wyznaczać* store, nie odwrotnie, przynajmniej jako alternatywna ścieżka dla frontendów, które nie polegają na hoście).
+- Odseparować cache: dodać identyfikator sklepu do `Vary`/klucza cache w `Spree::Api::V3::HttpCaching#set_vary_headers` (`spree/api/app/controllers/concerns/spree/api/v3/http_caching.rb:25`).
+- `Spree::Base.for_store` (`spree/core/app/models/spree/base.rb:34`): zamienić cichy fallback "zwróć wszystkie rekordy" na jawny błąd (albo wymagane wdrożenie scope'u), żeby nowy model bez relacji na `Store` nie przeciekał między tenantami po cichu.
+- Owinąć `Admin::StoresController#create` (`spree/api/app/controllers/spree/api/v3/admin/stores_controller.rb:23`) w transakcję (`store.save` + `store.add_user` atomowo).
+- Dodać pełne testy dwóch tenantów: katalog, koszyk, klienci, zamówienia, cache, klucze API — żaden nie przecieka między sklepami.
+- **Ustalić decyzję produktową:** czy konta klientów są wspólne dla platformy, czy osobne per sklep (nierozstrzygnięte — wpływa na model danych `Customer`/`User` przed dalszymi etapami).
+- Domknąć resztę drobiazgów z Fazy 1 przy okazji: pusty 422 przy braku shipping coverage (`stan-projektu.md`), `rswag:specs:swaggerize` dla `/admin/stores`.
 
-**Etap 1 — Store App Contract.** Wydzielić `@sklepik/contracts` i `@sklepik/commerce-sdk` z `sklepikFront`. Wydzielić minimalny headless cart/checkout bez brandingu Kakałowego Sklepiku. Zbudować `@sklepik/test-contracts`. Zdefiniować `store.app.json` i CLI validate/doctor. Ustalić semver i macierz kompatybilności. **Gate:** `sklepikFront` musi dać się przepiąć na nowe pakiety bez zmiany zachowania użytkownika, zanim wolno tworzyć wiele repozytoriów.
+**Etap 1 — stabilny kontrakt backend-frontend (nie rozpoczęty).** Rozszerzyć istniejący `@spree/sdk` (nie budować `@sklepik/commerce-sdk` od zera obok niego, jeśli `@spree/sdk` da się do tego dociągnąć) + OpenAPI + testy kontraktowe. Na start wystarczy: kontrakty/typy, `@sklepik/test-contracts`, cienki starter — **nie** wszystkie osiem pakietów z sekcji "Pakiety" naraz. **Gate:** `sklepikFront` musi dać się przepiąć na rozszerzony kontrakt bez zmiany zachowania użytkownika.
 
-**Etap 2 — cienki template i pierwszy ręczny pilot.** `sklepik-store-template` bez brandingu/hardcoded nazwy/kraju/domeny, z manifestem, testami kontraktowymi i CI. Ręcznie utworzyć drugi sklep w osobnym repo i Vercel. Przetestować update pakietu core przez PR i rollback.
+**Etap 2 — ręczny sklep pilotażowy (nie rozpoczęty).** Utworzyć drugi sklep z osobnym repo, osobnym projektem Vercel, osobną domeną i kluczem, wyraźnie innym wyglądem. Sprawdzić: katalog, koszyk, checkout, wdrożenie, aktualizację przez PR, **prawdziwie wykonany rollback** (nie tylko przetestowany teoretycznie).
 
-**Etap 3 — Control Plane i provider adapters.** Modele `StoreApplication`/`GitRepository`/`DeploymentTarget`/`DomainBinding`/`ProvisioningRun`/`ProvisioningStep`. Interfejsy `GitProvider`/`DeploymentProvider`. Status i log procesu w panelu. Idempotency keys, retry, cancel/retry jawne.
+**Etap 3 — minimalna automatyzacja (dopiero po udanym pilocie).** `StoreApplication`, `ProvisioningRun`, kroki Sidekiq. GitHub App z krótkotrwałymi, ograniczonymi tokenami instalacyjnymi (nie długowieczny PAT).
 
-**Etap 4 — automatyczny GitHub + Vercel provisioning.** GitHub App tworzy repo z template + polityki. Provisioner tworzy Vercel project/env/preview. Smoke testy weryfikują `store_id`. Panel pokazuje preview URL/log/błędy. Produkcja wymaga jawnej promocji lub polityki auto-promote.
+**Etap 4 — fabryka, aktualizacje i AI (dopiero gdy deterministyczny provisioning z Etapu 3 działa stabilnie).** Automatyczne repozytoria, Vercel, domeny, Update Bot, AI Store Builder. Dedykowane backendy (`dedicated_stack`) zostają na sam koniec, na żądanie płacącego klienta.
 
-**Etap 5 — Update Bot i fleet governance.** Centralny rejestr wersji, automatyczne PR-y patch/minor, raport compatibility/security, kanały stable/canary/pinned, procedura krytycznej poprawki.
+### Definition of Done — MVP Store Factory
 
-**Etap 6 — AI Store Builder** (dopiero po stabilnym pilocie z Etapów 0-5). Brief → plan → branch → sandbox → build → preview → PR. `GenerationRun` zapisuje pełny audyt. Visual verification przez przeglądarkę. Blokada auto-merge dla checkout/auth/CI.
-
-**Etap 7 — Dedicated Stack** (enterprise, na żądanie płacącego klienta, nie z wyprzedzeniem). Wersjonowany obraz backendu, provider bazy/Redis/storage/domeny API, migracja shared→dedicated, backup/restore/transfer.
+Dwa sklepy działają na wspólnym Spree bez żadnego przecieku danych; mogą być wdrażane niezależnie; aktualizacja pakietu core przechodzi przez PR i preview; rollback został faktycznie wykonany (nie tylko przetestowany na sucho); repozytorium sklepu można przekazać klientowi i uruchomić wyłącznie z dokumentacji (README + `.env.example`).
 
 ## Constraints on Current Work
 
-- **Nic w bieżącej pracy nie zmienia się natychmiast.** Store Factory jest decyzją o modelu docelowym, nie zadaniem do wykonania teraz — realizacja czeka na zamknięcie P0/P1 z Fazy 1 (Kakao MVP: Stripe, strony prawne) z `roadmap.md`. Etap 0 tego planu może ruszyć równolegle tylko jeśli nie odciąga zasobów od tamtych blokerów sprzedażowych.
+- Store Factory jako całość (Etapy 1-4) jest decyzją o modelu docelowym, nie zadaniem do wykonania teraz — realizacja czeka na zamknięcie P0/P1 z Fazy 1 (Kakao MVP: Stripe, strony prawne) z `roadmap.md`.
+- **Wyjątek: Etap 0 (bezpieczna wielosklepowość w backendzie) nie jest wyłącznie przygotowaniem pod Store Factory — to już dziś istniejący dług/bug** (`FindDefault` ignoruje host, cache bez identyfikatora sklepu, `for_store` cichy brak scope'u, brak transakcji w `StoresController#create`), zapisany w `docs/stan-projektu.md`. Może i powinien być naprawiony niezależnie od tempa reszty planu, bo dotyczy już zaimplementowanej (F25) wielosklepowości panelu, nie tylko przyszłych niezależnych storefrontów.
 - `sklepikFront` pozostaje dziś jedynym, wspólnym repo storefrontu — żadnych nowych repozytoriów per sklep, dopóki Etap 1 (wydzielenie `@sklepik/contracts`/`commerce-sdk`) nie jest gotowe i przetestowane na istniejącym storefroncie.
 - Jeśli ktoś zacznie realnie wydzielać pakiety `@sklepik/*` z `sklepikFront` (Etap 1), musi to robić bez zmiany zachowania użytkownika — to jest gate przed Etapem 2, nie opcjonalny refaktor.
 - `docs/plans/storefront-composition-system.md` pozostaje jako opis trybu `managed` — nie budować go jako alternatywnego modelu docelowego dla niezależnych sklepów.
