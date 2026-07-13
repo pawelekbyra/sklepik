@@ -57,7 +57,11 @@ module Spree
           end
 
           def create_store!(user)
-            store = Spree::Store.new(name: params[:store_name], mail_from_address: params[:email])
+            store = Spree::Store.new(
+              name: params[:store_name],
+              mail_from_address: params[:email],
+              launch_status: 'draft'
+            )
             store.code = unique_code(store.name) if store.code.blank?
             store.url = "#{store.code}.vercel.app"
             store.save!

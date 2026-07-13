@@ -1,4 +1,5 @@
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { spreeDashboardPlugin } from '@spree/dashboard-core/vite'
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
 import react from '@vitejs/plugin-react'
@@ -11,7 +12,7 @@ export default defineConfig({
   plugins: [spreeDashboardPlugin({ cssEntry: './src/styles.css' }), TanStackRouterVite(), react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(path.dirname(fileURLToPath(import.meta.url)), './src'),
     },
   },
   // Proxy /api to the Rails server so the SPA is same-origin with the API in dev.

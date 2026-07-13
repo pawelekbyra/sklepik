@@ -51,6 +51,7 @@ RSpec.describe Spree::Api::V3::Admin::SignupsController, type: :controller do
 
         user = Spree.admin_user_class.find_by!(email: params[:email])
         expect(Spree::Store.last.url).to eq('nowy-sklep.vercel.app')
+        expect(Spree::Store.last).to be_draft
         expect(user.spree_admin?(Spree::Store.last)).to be(true)
       end
 

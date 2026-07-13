@@ -18,6 +18,7 @@ module Spree
                    preferred_unit_system: :string,
                    preferred_storefront_access: :string,
                    preferred_guest_checkout: :boolean,
+                   launch_status: :string,
                    metadata: 'Record<string, unknown>'
 
           attributes :metadata,
@@ -31,6 +32,7 @@ module Spree
                      :preferred_unit_system,
                      :preferred_storefront_access,
                      :preferred_guest_checkout,
+                     :launch_status,
                      created_at: :iso8601, updated_at: :iso8601
 
           # Canonical set of locales a merchant may translate content into,

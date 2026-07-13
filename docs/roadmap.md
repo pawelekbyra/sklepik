@@ -4,7 +4,7 @@ Kolejność prac dla całego systemu (oba repozytoria). Agent bierze zadania od 
 
 Jeśli któryś opis okaże się nieaktualny w chwili pracy — sprawdź kod, nie ufaj samemu opisowi.
 
-**Świadomie odłożone (decyzja właściciela, nie techniczna):** konfiguracja Stripe/płatności, strony prawne (regulamin, polityka prywatności, odstąpienie) i Admin API/panel dla shipping methods/zones/tax rates. Wszystkie trzy są blokerami sprzedażowymi z audytu `docs/audits/2026-07-08-system-wide-production-readiness-audit.md`, ale wymagają zewnętrznych kont/treści albo osobnej decyzji projektowej zanim zaczniemy kodować — patrz F21 w Fazie 1 i sekcja Faza 2. Cała reszta znalezisk z audytów F12/F13/system-wide jest w zakresie poniżej.
+**Zewnętrzne blokery sprzedaży:** konfiguracja realnego operatora płatności, prawdziwe dane i treści prawne merchanta oraz produkcyjny test zamówienia. Panel pozwala już edytować dokumenty i checklista wymusza ich uzupełnienie, ale platforma nie może wymyślić za właściciela danych prawnych ani zaakceptować umowy z operatorem płatności.
 
 ## Faza 1 — Fundament techniczny
 
@@ -160,27 +160,41 @@ Dynamiczne rozpoznawanie sklepu po domenie w storefroncie to Faza 2, samoobsług
 
 **Publiczny signup Store Factory — GOTOWY DO WDROŻENIA ZA FLAGĄ (2026-07-13):** panel ma publiczną trasę `/signup`, SDK metodę `auth.signup`, a backend publiczny `POST /api/v3/admin/auth/signup`. Jedna transakcja tworzy administratora, sklep z tymczasowym adresem `<code>.vercel.app` i provisioning run; job po gotowym deploymencie zapisuje prawdziwy host. `STORE_SIGNUP_ENABLED=false` jest bezpiecznym ustawieniem domyślnym. Zweryfikowane lokalnie: 4/4 przykłady RSpec, test kontraktu SDK i typecheck dashboardu. Do zamknięcia przed szerokim ruchem: realny E2E GitHub→Vercel, weryfikacja e-mail/CAPTCHA oraz decyzja o płatności/limitach planu.
 
-## Faza 2 — Kakao MVP
+## Faza 2 — Store Factory: od rejestracji do bezpiecznej publikacji
 
-Start dopiero po zamknięciu P0 i P1 z Fazy 1.
+**F26. Edytor storefrontu MVP** — oba repo — `[gotowe lokalnie 2026-07-14, czeka na deploy i E2E]`
 
-Zakres:
+Backend przechowuje osobne wersje draft/published walidowanego dokumentu strony, chroni zapis optimistic lockingiem i udostępnia publicznie wyłącznie snapshot. Panel właściciela edytuje, porządkuje i publikuje sekcje hero/product grid z live preview. Wspólny storefront renderuje dokument, a przed pierwszą publikacją zachowuje dotychczasowy widok kakao. Następne sekcje, preview URL, motywy i generowanie AI mają rozszerzać ten sam wersjonowany kontrakt — bez dowolnego HTML/JS.
 
-- Realne produkty kakao (na start ~5: kakao ceremonialne klasyczne i intensywne, zestaw degustacyjny, kakao z przyprawami, akcesoria) — mogą być fikcyjne, ale mają wyglądać realistycznie.
-- Kategorie produktów.
-- Branding premium storefrontu (strona główna, strona produktu) — ton marki opisany w `sklepikFront/docs/kierunek-frontu.md`.
-- Strony informacyjne: O nas, Dostawa, Zwroty, Kontakt.
-- Strony prawne: regulamin, polityka prywatności, prawo odstąpienia.
-- Konfiguracja płatności (Stripe przez `spree_stripe`).
-- Konfiguracja wysyłki/stref/stawek podatkowych w Admin API/panelu (F21).
-- Własna domena (storefront + admin + backend; docelowo admin pod `/admin/*` tej samej domeny przez rewrite Vercela).
-- Weryfikacja pełnego flow zakupowego end-to-end.
+**F27. Launch readiness i dokumenty prawne** — `sklepik` — `[gotowe lokalnie 2026-07-14, czeka na deploy i E2E]`
 
-Poza zakresem MVP (świadomie później): gry, VOD, subskrypcje, program lojalnościowy, AI, rozbudowany CMS.
+Nowy sklep zaczyna jako `draft`. Dashboard pokazuje checklistę danych firmy, produktu, płatności, wysyłki, dokumentów i opublikowanej strony. Admin ma edytor polityk z jawnym zastrzeżeniem, że nie są poradą prawną. Jawne uruchomienie przełącza sklep na `live` tylko po spełnieniu kontroli; backend blokuje tworzenie płatności, sesji i finalizację checkoutu wcześniej. Stare sklepy bez wartości kolumny pozostają aktywne.
 
-## Faza 3 — moduły premium
+**F28. Pierwsze płatne wdrożenia** — produkt + operacje — `[otwarte]`
 
-Storytelling, edukacja produktowa, quizy, subskrypcje, lojalność, integracje AI — jako osobne moduły nad stabilnym corem, nigdy w krytycznej ścieżce checkoutu.
+- wybrać pierwszy segment na podstawie `docs/research/`;
+- przeprowadzić 20 rozmów bez udawania wyników i zdobyć 5 płatnych pilotów;
+- zmierzyć czas pracy człowieka, aktywację i pierwsze prawdziwe zamówienie;
+- skonfigurować płatności, prawdziwe treści, wysyłkę i domenę per pilot;
+- zamieniać powtarzalne działania operatora w funkcje produktu.
+
+**F29. Fundament Sklepika i uniezależnienie od Spree** — oba repo — `[otwarte; następna inicjatywa po F26–F27]`
+
+Celem nie jest kosmetyczny globalny rename, tylko doprowadzenie do sytuacji, w której panel, storefronty, agenci i nowe moduły posługują się wyłącznie językiem domenowym Sklepika. Spree pozostaje przejściowo wymiennym silnikiem commerce za kontrolowaną granicą. Program obejmuje:
+
+- zamrożenie audytowanego commita po wdrożeniu F26–F27;
+- klasyfikację każdego modułu i pliku jako `KEEP`, `HARDEN`, `REFACTOR`, `REPLACE`, `REMOVE`, `ISOLATE` albo `UNKNOWN`;
+- pełny audyt ścieżek pieniędzy, tenant isolation, auth, callbacków/jobów, API, migracji, infrastruktury, zależności i martwego legacy;
+- własne stabilne kontrakty Sklepika oraz adaptery odcinające dashboard i storefront od nazw, typów i szczegółów silnika;
+- usunięcie nazwy Spree z produktu, publicznych kontraktów, nowych plików, nazw własnych zmiennych/cookies/webhooków i dokumentacji operacyjnej, z okresami kompatybilności tam, gdzie działają wdrożone sklepy;
+- stopniowe zastępowanie lub izolowanie namespace'ów, tabel i komponentów silnika dopiero z testami migracji, rollbacku i zgodności danych;
+- testy dynamiczne: pełne suite, E2E wielu tenantów, kontrakty, property/fuzz, mutation, obciążenie, chaos oraz odtworzenie backupu.
+
+Warunek zakończenia: nazwa i model Spree nie przeciekają poza adapter silnika, żadna nowa funkcja Sklepika nie zależy bezpośrednio od jego wewnętrznych namespace'ów, a każda pozostawiona część legacy ma właściciela, uzasadnienie, testy i plan dalszego losu. Literalne zero wystąpień w kodzie zależności nie jest ważniejsze od bezpieczeństwa danych i zamówień.
+
+## Faza 3 — assisted self-service i partnerzy
+
+Import katalogów, agent gotowości/next-best-action, więcej sekcji i motywów, analityka lejka, kontrolowane aktualizacje floty, role partnerów i handoff. Funkcje AI pozostają poza krytyczną ścieżką pieniędzy i wykonują działania z zatwierdzeniem człowieka.
 
 ---
 

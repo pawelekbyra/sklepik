@@ -273,3 +273,47 @@ Nowy endpoint i flaga są specyficzne dla tego forka. Store API i checkout nie z
 ### Notatki
 
 Przed publicznym włączeniem wymagane są realne E2E GitHub→Vercel oraz ochrona przed masowym zakładaniem kont (weryfikacja e-mail/CAPTCHA). Wyłączenie flagi zwraca 404 i nie wpływa na istniejące konta ani uruchomione joby.
+
+## 2026-07-14 — Publikowany dokument storefrontu z izolacją draft/published
+
+### Status
+
+Pierwsza wersja zaimplementowana i pokryta testami modelu oraz Admin/Store API.
+
+### Kontekst
+
+Store Factory tworzył osobne storefronty, ale właściciel nie miał kanonicznego sposobu zmiany strony. Prototyp `edytor-sklepu` definiował ogólny schemat, lecz nie miał persystencji, autoryzacji, publikacji ani produkcyjnego renderera. Przechowywanie dowolnego HTML lub kodu w bazie zwiększałoby ryzyko XSS i uniemożliwiało kontrolowane aktualizacje floty.
+
+### Decyzja
+
+Backend przechowuje per sklep stronę `StorefrontPage` z walidowanym dokumentem JSON. Admin API pracuje na `draft_document`, a jawna akcja publikacji kopiuje go do niezmiennego publicznego snapshotu `published_document`. Store API zwraca wyłącznie snapshot i przed pierwszą publikacją odpowiada 404. Pierwszy kontrakt dopuszcza tylko sekcje `hero` oraz `product_grid`, ograniczone pola, bezpieczne linki i przyciski; nie przyjmuje HTML ani JavaScript. `lock_version` chroni przed nadpisaniem równoległej sesji edytora.
+
+### Uzasadnienie
+
+Jeden ustrukturyzowany kontrakt obsługuje edycję ręczną, przyszłe generowanie AI i wiele wersji wspólnego renderera. Oddzielenie wersji roboczej od publicznej zapobiega publikowaniu częściowych zmian. Scope przez `current_store.storefront_pages` zapewnia izolację tenantów.
+
+### Wpływ na storefront i upstream
+
+`sklepikFront` pobiera publiczny dokument i mapuje allowlistę sekcji na własne komponenty. Brak dokumentu zachowuje dotychczasową stronę kakao. To nowy moduł specyficzny dla forka; nie zmienia istniejących kontraktów produktów ani checkoutu.
+
+## 2026-07-14 — Nowe sklepy jako draft i twarda bramka przyjęcia pieniędzy
+
+### Status
+
+Zaimplementowane; stare rekordy bez statusu pozostają aktywne dla kompatybilności.
+
+### Kontekst
+
+Publiczny signup potrafi utworzyć działający storefront, ale techniczny deploy nie oznacza sklepu gotowego prawnie i operacyjnie. Nowy merchant nie powinien przypadkowo przyjąć płatności bez produktu, dostawy, metody płatności, dokumentów lub opublikowanej strony.
+
+### Decyzja
+
+Nowe sklepy powstają ze statusem `draft`. Serwis gotowości raportuje jawne wymagania: dane kontaktowe, opublikowany produkt, aktywna metoda płatności, pokrycie wysyłki, co najmniej trzy uzupełnione polityki i opublikowana strona główna. Właściciel uruchamia sklep osobną akcją Admin API dopiero po spełnieniu wszystkich kontroli. Store API nadal pozwala oglądać katalog i konfigurować koszyk, ale kontrolery tworzenia płatności, sesji płatniczych i finalizacji koszyka odrzucają sklep nieaktywny.
+
+### Uzasadnienie
+
+Bramka jest po stronie zaufanego backendu i obejmuje wszystkie storefronty oraz integracje. Samo ukrycie przycisku w UI byłoby omijalne. Ograniczenie dotyczy wyłącznie money-critical końca ścieżki, więc właściciel może wcześniej przetestować sklep.
+
+### Wpływ na storefront i upstream
+
+Istniejący storefront nie wymaga nowej logiki. Próba checkoutu szkicu otrzymuje kontrolowany błąd `cart_cannot_complete`. Zmiana dotyka kontrolerów checkoutu forka i musi być uwzględniana przy aktualizacjach upstream.

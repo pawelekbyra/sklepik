@@ -21,6 +21,7 @@ import { PackageIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts'
+import { StoreReadinessCard } from '@/components/store-factory/store-readiness-card'
 
 export const Route = createFileRoute('/_authenticated/$storeId/')({
   component: DashboardPage,
@@ -61,6 +62,7 @@ function DashboardPage() {
         </div>
         <DateRangePicker value={dateRange} onChange={setDateRange} />
       </div>
+      <StoreReadinessCard />
       <AnalyticsChart data={data} />
       <TopProducts products={data.top_products} />
     </div>

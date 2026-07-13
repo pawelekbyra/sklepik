@@ -872,6 +872,17 @@ RSpec.describe Spree::Api::V3::Store::CartsController, type: :controller do
       request.headers['Authorization'] = "Bearer #{jwt_token}"
     end
 
+    it 'refuses checkout while the store is still a draft' do
+      allow(controller).to receive(:current_store).and_return(store)
+      allow(store).to receive(:live?).and_return(false)
+
+      post :complete, params: { id: order.prefixed_id }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(json_response.dig('error', 'message')).to eq('This store is not accepting orders yet.')
+      expect(order.reload.state).to eq('confirm')
+    end
+
     it 'completes the checkout' do
       # Set up order so it can be completed
       create(:payment, order: order, amount: order.total, state: 'checkout')

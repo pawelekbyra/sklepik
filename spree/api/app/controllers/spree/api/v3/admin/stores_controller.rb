@@ -24,6 +24,7 @@ module Spree
             return render_access_denied unless current_user.admin_of_any_store?
 
             store = Spree::Store.new(permitted_params)
+            store.launch_status = 'draft'
             store.code = unique_code(store.name) if store.code.blank?
 
             # Store creation and owner assignment must be atomic: `add_user`

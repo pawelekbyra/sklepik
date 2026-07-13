@@ -1,8 +1,8 @@
-# Kakałowy Sklepik — silnik commerce: zasady dla agentów
+# Sklepik — platforma commerce: zasady dla agentów
 
 ## Kontekst projektu (przeczytaj najpierw)
 
-To repozytorium to backend + panel administracyjny własnej platformy e-commerce **Kakałowy Sklepik** (produkty kakao). Silnik jest forkiem Spree Commerce, ale projekt jest samodzielny: upstream Spree to fundament techniczny, nie wyznacza celu ani roadmapy. Storefront klienta żyje w osobnym repo `pawelekbyra/sklepikFront` (Next.js) i konsumuje Store API v3 z tego repo.
+To repozytorium to backend, panel właściciela i Store Factory platformy **Sklepik**, która uruchamia i prowadzi niezależne sklepy klientów. Pierwszy sklep kakao jest sklepem referencyjnym. Silnik jest forkiem Spree Commerce, ale upstream to fundament techniczny, nie cel produktu. Storefronty żyją w repo `pawelekbyra/sklepikFront` (Next.js) i konsumują Store API v3 z tego repo.
 
 Obowiązkowa lektura przed pracą:
 

@@ -22,6 +22,20 @@ module Spree
             end
           end
 
+          def readiness
+            authorize! :show, current_store
+            render json: Spree::Stores::ReadinessCheck.call(store: current_store)
+          end
+
+          def launch
+            authorize! :update, current_store
+            result = Spree::Stores::ReadinessCheck.call(store: current_store)
+            return render json: result, status: :unprocessable_content unless result[:ready]
+
+            current_store.update!(launch_status: 'live')
+            render json: serialize_store
+          end
+
           private
 
           def serialize_store

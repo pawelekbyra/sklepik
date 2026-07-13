@@ -1,83 +1,127 @@
-# Kierunek projektu: Kakałowy Sklepik
+# Kierunek projektu: Sklepik
 
-**Ten dokument jest kanonem całego systemu.** Obowiązuje w obu repozytoriach (`sklepik` i `sklepikFront`). Inne dokumenty i instrukcje agentów odsyłają tutaj — nie duplikują tych sekcji.
+**Ten dokument jest kanonem całego systemu.** Obowiązuje w repozytoriach `sklepik` i `sklepikFront`. Opisuje to, czym jest produkt; bieżący stan i kolejność prac są w `stan-projektu.md` i `roadmap.md`.
 
-## Cel projektu
+## Czym jest Sklepik
 
-Budujemy własną platformę e-commerce — sklep internetowy dla produktów kakao (robocza marka: **Kakałowy Sklepik**) — z pełną kontrolą nad kodem, bez ograniczeń zamkniętych platform typu Shopify czy WooCommerce.
+Sklepik jest platformą do uruchamiania i prowadzenia niezależnych sklepów internetowych. Właściciel może:
 
-Silnikiem commerce jest fork Spree Commerce (Rails + REST API), storefrontem fork oficjalnego Spree Next.js Storefront. Od momentu forka oba repozytoria są rozwijane jako **własny projekt**: Spree pozostaje fundamentem technicznym, ale nie wyznacza celu, brandingu ani roadmapy.
+- założyć konto i utworzyć sklep samodzielnie;
+- zlecić nam lub partnerowi przygotowanie sklepu;
+- zarządzać produktami, konfiguracją i wyglądem bez programowania;
+- otrzymać osobny storefront, repozytorium i wdrożenie;
+- rozwijać sklep poza ograniczeniami zamkniętego kreatora.
 
-Projekt ma umożliwiać dalszą rozbudowę o moduły premium: storytelling marki, edukację produktową, filmy, quizy, gry, subskrypcje, program lojalnościowy, integracje AI — wszystko czego nie da się sensownie zrobić w klasycznych kreatorach e-commerce.
+> **Sklepik jest systemem operacyjnym małej marki. Generator sklepu to tylko pierwsza minuta relacji. Prawdziwa wartość zaczyna się później — kiedy platforma pomaga marce rzeczywiście sprzedawać.**
+
+Właściciel marki ma pozostać ekspertem od swojego produktu, nie musi stawać się specjalistą od e-commerce. Sklepik dostarcza mu cyfrowy zespół: pomaga z wyglądem, treściami, SEO/AEO, katalogiem, kampaniami, analizą, wiadomościami i obsługą klienta. Agenci przygotowują oraz wykonują bezpieczne działania w kontekście konkretnego sklepu; właściciel zachowuje głos marki i zatwierdza decyzje dotyczące pieniędzy, prawa oraz komunikacji o podwyższonym ryzyku.
+
+Pierwszy sklep z produktami kakao pozostaje działającym sklepem referencyjnym i poligonem produktu. Nie jest już definicją całego projektu.
+
+Docelową obietnicą nie jest samo „wygenerowanie strony”, lecz przeprowadzenie sprzedawcy od pomysłu i produktów do sklepu rzeczywiście gotowego przyjąć zamówienie, a następnie systematyczne pomaganie mu w prowadzeniu i rozwijaniu sprzedaży.
+
+## Dla kogo
+
+Pierwszym klinem są małe polskie marki produktowe, twórcy i mikroproducenci z prostym katalogiem, którzy potrzebują profesjonalnej sprzedaży bez składania technologii i długiego wdrożenia agencyjnego.
+
+Produkt ma obsługiwać trzy sposoby pracy na wspólnym silniku:
+
+1. **Done-for-you** — operator przygotowuje sklep dla klienta.
+2. **Assisted self-service** — klient tworzy sklep sam, a system i operator pomagają w trudnych krokach.
+3. **Partner** — freelancer lub agencja tworzy i prowadzi wiele sklepów klientów.
+
+Pełny self-service oraz kanał partnerski rozwijamy na podstawie rzeczywistych wdrożeń, a nie wyłącznie założeń.
+
+## Obietnica produktu
+
+> Od produktów do własnego sklepu gotowego do sprzedaży — samodzielnie albo z naszą pomocą.
+
+Właściciel sklepu ma widzieć zadania biznesowe: produkty, wygląd, dostawy, płatności, dokumenty i sprzedaż. GitHub, Vercel i szczegóły infrastruktury są mechanizmem platformy, nie wymaganiem wobec użytkownika.
+
+AI jest operatorem wspierającym człowieka, a nie dekoracją. Może przygotowywać treści i układ, importować produkty, wykrywać braki, proponować działania oraz wykonywać odwracalne operacje po zatwierdzeniu. Nie może omijać kontroli płatności, prawa, bezpieczeństwa ani publikacji.
+
+Docelowym interfejsem platformy jest również język naturalny. Właściciel może poprosić agenta o jednorazową zmianę („ustaw zielone tło”) albo zdefiniować trwałą automatyzację („eskaluj agresywną reklamację i zaproponuj refund według tej polityki”). Agent tłumaczy intencję na typowany plan operacji wykonywany przez deterministyczne serwisy platformy. Każda akcja ma klasę ryzyka: bezpieczne i odwracalne zmiany mogą wykonać się po podglądzie, a pieniądze, prawo, dane oraz komunikacja wysokiego ryzyka wymagają limitów, uprawnień, zatwierdzenia i śladu audytowego. Zasada brzmi: **AI wszędzie, ale nie LLM jako niekontrolowany wykonawca wszystkiego.**
 
 ## Podział repozytoriów
 
-System składa się z dwóch repozytoriów, które działają razem:
-
 ```text
 pawelekbyra/sklepik
-→ silnik commerce, backend Rails, Admin API + Store API, panel administracyjny (React SPA),
-  SDK TypeScript, deployment backendu (Oracle Cloud VPS)
+→ kanon systemu, silnik commerce, tenanty i właściciele, Admin API + Store API,
+  panel właściciela, edytor, provisioning, SDK i backend produkcyjny
 
 pawelekbyra/sklepikFront
-→ storefront Next.js, doświadczenie klienta, branding, UX, SEO, deployment na Vercel
+→ wersjonowany storefront Next.js: rendering sklepu, branding, UX, SEO,
+  checkout klienta i wdrożenie Vercel
 ```
 
-Zasada: `sklepik` jest źródłem prawdy dla commerce (produkty, ceny, koszyk, zamówienia, płatności). `sklepikFront` konsumuje Store API i nie zawiera logiki biznesowej commerce. Jeśli zmiana wymaga backendu, API albo admina — robi się ją w `sklepik`.
+`sklepik` jest źródłem prawdy dla produktów, cen, koszyka, zamówień, konfiguracji sklepu oraz dokumentu layoutu. `sklepikFront` renderuje dane Store API i nie duplikuje logiki commerce.
 
-Pełna mapa systemu i hostingu: [`architektura.md`](architektura.md).
+Każdy sklep jest tenantem backendu. Store Factory może tworzyć osobne repozytorium i projekt Vercel, ale storefronty korzystają ze wspólnego, wersjonowanego rdzenia. Osobny kod nie może oznaczać setek nieaktualizowalnych kopii.
+
+## Granica obietnicy własności
+
+Klient otrzymuje otwarty i przenośny storefront działający na zarządzanym silniku commerce. Dopóki nie istnieje kompletny eksport lub samodzielne uruchomienie backendu, nie obiecujemy własności całego stosu. Komunikacja ma precyzyjnie odróżniać:
+
+- własność kodu storefrontu;
+- przenośność danych;
+- zarządzany backend commerce;
+- rozszerzalność przez API.
 
 ## Hierarchia decyzji
 
-W razie konfliktu priorytetów obowiązuje kolejność:
+1. Bezpieczeństwo pieniędzy, danych i izolacji sklepów.
+2. Doprowadzenie sprzedawcy do pierwszej prawdziwej sprzedaży.
+3. Decyzje właściciela projektu.
+4. Wiedza z realnych wdrożeń, pomiarów i badań rynku.
+5. Dokumentacja projektu, z tym plikiem jako kanonem.
+6. Stabilność commerce: checkout, koszyk, zamówienia, płatności i produkty.
+7. Kompatybilność ze Spree upstream.
 
-1. Cel projektu Kakałowy Sklepik.
-2. Decyzje właściciela projektu.
-3. Dokumentacja projektu (`docs/` w obu repo, z tym plikiem jako kanonem).
-4. Stabilność zakupów: checkout, koszyk, zamówienia, płatności, produkty, admin.
-5. Kompatybilność ze Spree upstream (ułatwia aktualizacje, ale nie jest celem samym w sobie).
-6. Oryginalne konwencje Spree.
+## Zasady architektoniczne
 
-Jeżeli konwencja upstreamowego Spree przeszkadza w realizacji celu projektu, agent najpierw proponuje bezpieczny wariant rozszerzenia. Jeśli konieczna jest zmiana core silnika, opisuje ją w [`engine-decisions.md`](engine-decisions.md).
+- Core commerce ma być przewidywalny i odseparowany od eksperymentów.
+- Wszystkie dane właściciela są bezwzględnie scope'owane do sklepu.
+- Nowy sklep zaczyna jako `draft`; może przyjąć pieniądze dopiero po spełnieniu jawnej checklisty i świadomym uruchomieniu.
+- Edytor zapisuje ustrukturyzowany, walidowany dokument. Storefront renderuje wyłącznie opublikowany snapshot; wersja robocza nie może wyciec publicznie.
+- AI i generatory layoutu tworzą dane zgodne z tym samym schematem co edytor ręczny.
+- Frontend nie zawiera własnych cen, stanów magazynowych ani reguł zamówień.
+- Sklepik ma własny język domenowy i stabilne kontrakty. Nazwy i szczegóły obecnego silnika commerce są zamykane za adapterem; nie przenosimy ich do nowych funkcji, agentów ani publicznych integracji.
+- Modyfikacja core Spree wymaga uzasadnienia i wpisu w `engine-decisions.md`.
+- Sekrety platformy nigdy nie trafiają do repozytorium klienta.
+- Wszystkie storefronty muszą mieć kontrolowaną ścieżkę aktualizacji wspólnego rdzenia.
 
-## Główna zasada architektoniczna
+## Definicja sklepu gotowego do sprzedaży
 
-**Core commerce ma być betonem** — nudny, przewidywalny, niezawodny. Magia projektu powstaje nad corem: w storefroncie, treściach, modułach doświadczenia klienta.
+Samo utworzenie repozytorium i deploymentu nie oznacza sukcesu. Przed uruchomieniem sklep musi mieć co najmniej:
 
-Domyślnie rozszerzamy Spree zamiast modyfikować jego core. Modyfikacja core jest dopuszczalna (docelowo to własna platforma), ale tylko gdy:
+- dane kontaktowe firmy;
+- opublikowany produkt;
+- metodę płatności;
+- pokrycie dostawy;
+- uzupełnione dokumenty prawne;
+- opublikowaną stronę główną.
 
-1. istnieje jasny powód biznesowy lub techniczny,
-2. nie da się tego zrobić przez konfigurację, extension point albo osobny moduł,
-3. decyzja zostanie zapisana w `docs/engine-decisions.md`,
-4. wpływ na `sklepikFront` (Store API) zostanie uwzględniony.
+Lista będzie rozszerzana wraz z rzeczywistymi wdrożeniami. System nie generuje fikcyjnych danych prawnych ani nie aktywuje sprzedaży bez decyzji właściciela.
 
-## Priorytety architektoniczne
+## Model rozwoju produktu
 
-1. Utrzymać stabilny silnik sklepu.
-2. Budować własne funkcje jako rozszerzenia lub osobne moduły.
-3. Trzymać wyraźny podział: backend / admin / storefront.
-4. Nie mieszać logiki checkoutu z funkcjami eksperymentalnymi (gry, VOD, AI).
-5. Nie hardcodować danych demo w kodzie produkcyjnym.
-6. Dbać o możliwość aktualizacji względem upstreamowego Spree.
-7. Każda większa decyzja techniczna ma krótkie uzasadnienie w dokumentacji.
-8. Dokumentacja w obu repo jest zgodna co do celu, nazw i podziału odpowiedzialności.
+1. Uruchamiać prawdziwe sklepy jako usługę wspieraną.
+2. Mierzyć czas, problemy, porzucenia i pierwsze zamówienia.
+3. Zamieniać powtarzalną pracę operatora w bezpieczne funkcje platformy.
+4. Dopiero potem automatyzować pełny self-service i udostępniać narzędzia partnerom.
 
-## Stack technologiczny
+North-star metric:
 
-- **Backend:** Rails / fork Spree Commerce (monorepo: `spree/core`, `spree/api` + pakiety TS).
-- **Admin:** React SPA (`packages/dashboard`), rozmawia wyłącznie z Admin API.
-- **Storefront:** Next.js 16 + React 19 + Tailwind, rozmawia ze Store API przez `@spree/sdk`.
-- **Płatności:** Stripe jako domyślny kierunek (jeszcze nieskonfigurowane).
-- **Hosting:** Oracle Cloud VPS (backend + Postgres + Redis + Sidekiq, od 2026-07-09; Render używany wcześniej, wycofany), Vercel (storefront i admin), Cloudflare R2 (media).
+> Liczba aktywnych sklepów, które w danym miesiącu zrealizowały co najmniej jedno prawdziwe zamówienie.
 
-## Fazy projektu
+Metryki pomocnicze to: rejestracja → produkt → gotowość → publikacja → pierwsze zamówienie, czas pracy człowieka na uruchomienie, koszt aktywnego sklepu, retencja oraz przychód na sklep.
 
-Aktualny stan i szczegółowy plan: [`stan-projektu.md`](stan-projektu.md) i [`roadmap.md`](roadmap.md).
+## Badania i decyzje
 
-- **Faza 1 — fundament:** oba repo uporządkowane i spójne, cały łańcuch działa: produkt dodany w adminie → widoczny i kupowalny w storefroncie. Usunięte blokery produkcyjne (deploy/migracje, kontrakt cen, walidacja gotowości produktu, cache).
-- **Faza 2 — Kakao MVP:** realne produkty kakao, branding premium, strony informacyjne, płatności, strony prawne, domeny.
-- **Faza 3 — moduły premium:** storytelling, edukacja, subskrypcje, lojalność i inne przewagi.
+Badania rynku żyją w `docs/research/`. Raport nie staje się automatycznie decyzją. Powinien zawierać źródła, datę, poziom pewności i eksperyment, a zatwierdzony wniosek trafia do tego dokumentu, roadmapy albo decyzji architektonicznej.
 
-## Filozofia
+## Wizja końca
 
-Ten projekt ma być własnym systemem operacyjnym pod markę commerce, a nie szablonowym sklepem. `sklepik` daje kontrolę nad silnikiem. `sklepikFront` daje szybkość, UX i wolność w budowaniu doświadczenia klienta.
+Sklepik ma być systemem uruchamiania i prowadzenia niezależnych marek handlowych. Człowiek opisuje biznes, przekazuje produkty i wybiera sposób pracy: sam, z nami albo z partnerem. Platforma pomaga przygotować markę, storefront, checkout, płatności, dostawy, wymagania operacyjne, domenę i infrastrukturę, a później pomaga rozwijać sprzedaż bez zamykania klienta w szablonie.
+
+Technologia może rosnąć bardzo szybko. Zakres wybieramy jednak według wartości dla klienta i możliwości zbudowania dystrybucji, nie według samej możliwości napisania kodu.

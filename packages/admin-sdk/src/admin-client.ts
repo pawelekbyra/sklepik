@@ -201,6 +201,8 @@ import type {
   Order,
   Payment,
   PaymentMethod,
+  Policy,
+  PolicyUpdateParams,
   Price,
   PriceList,
   Product,
@@ -219,6 +221,9 @@ import type {
   Store,
   StoreCredit,
   StoreCreditCategory,
+  StorefrontPage,
+  StorefrontPageUpdateParams,
+  StoreReadiness,
   TaxCategory,
   TaxRate,
   TranslatableResource,
@@ -499,6 +504,36 @@ export class AdminClient {
 
     update: (params: StoreUpdateParams, options?: RequestOptions): Promise<Store> =>
       this.request<Store>('PATCH', '/store', { ...options, body: params }),
+
+    readiness: (options?: RequestOptions): Promise<StoreReadiness> =>
+      this.request<StoreReadiness>('GET', '/store/readiness', options),
+
+    launch: (options?: RequestOptions): Promise<Store> =>
+      this.request<Store>('POST', '/store/launch', options),
+  }
+
+  readonly storefrontPage = {
+    get: (options?: RequestOptions): Promise<StorefrontPage> =>
+      this.request<StorefrontPage>('GET', '/storefront_page', options),
+
+    update: (
+      params: StorefrontPageUpdateParams,
+      options?: RequestOptions,
+    ): Promise<StorefrontPage> =>
+      this.request<StorefrontPage>('PATCH', '/storefront_page', { ...options, body: params }),
+
+    publish: (options?: RequestOptions): Promise<StorefrontPage> =>
+      this.request<StorefrontPage>('POST', '/storefront_page/publish', options),
+  }
+
+  readonly policies = {
+    list: (options?: RequestOptions): Promise<Policy[]> =>
+      this.request<{ data: Policy[] }>('GET', '/policies', options).then(
+        (response) => response.data,
+      ),
+
+    update: (id: string, params: PolicyUpdateParams, options?: RequestOptions): Promise<Policy> =>
+      this.request<Policy>('PATCH', `/policies/${id}`, { ...options, body: params }),
   }
 
   /**

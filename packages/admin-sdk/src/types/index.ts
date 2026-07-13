@@ -69,6 +69,7 @@ export type { default as Variant } from './generated/Variant'
 export type { default as WebhookDelivery } from './generated/WebhookDelivery'
 export type { default as WebhookEndpoint } from './generated/WebhookEndpoint'
 export type { default as Zone } from './generated/Zone'
+export type { Policy, PolicyUpdateParams } from './policy'
 // Hand-written Store Factory provisioning types (controller-shaped, not generated)
 export type {
   ProvisioningRun,
@@ -76,6 +77,20 @@ export type {
   ProvisioningStep,
   ProvisioningStepStatus,
 } from './provisioning'
+export type {
+  StoreReadiness,
+  StoreReadinessCheck,
+  StoreReadinessKey,
+} from './store-readiness'
+export type {
+  StorefrontButtonBlock,
+  StorefrontHeroSection,
+  StorefrontPage,
+  StorefrontPageDocument,
+  StorefrontPageUpdateParams,
+  StorefrontProductGridSection,
+  StorefrontSection,
+} from './storefront-page'
 // Hand-written translation-management types (controller-shaped, not generated)
 export type {
   Locale,

@@ -5,6 +5,23 @@ describe Spree::Store, type: :model, without_global_store: true do
     Spree::Country.find_by(iso: 'US') || create(:country_us)
   end
 
+  describe 'launch status' do
+    it 'treats legacy rows without a status as live' do
+      store = create(:store)
+      store.update_column(:launch_status, nil)
+
+      expect(store.reload).to be_live
+      expect(store).not_to be_draft
+    end
+
+    it 'recognizes a newly provisioned draft' do
+      store = create(:store, launch_status: 'draft')
+
+      expect(store).to be_draft
+      expect(store).not_to be_live
+    end
+  end
+
   context 'Associations' do
     subject { create(:store) }
 

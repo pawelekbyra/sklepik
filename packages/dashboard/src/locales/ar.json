@@ -85,12 +85,86 @@
         "failed_to_delete": "فشل حذف السوق"
       }
     },
+    "storefront_editor": {
+      "title": "Storefront editor",
+      "subtitle": "Build the homepage for this store, save a draft, then publish it.",
+      "load_failed": "The storefront page could not be loaded",
+      "saved": "Draft saved",
+      "save_failed": "The draft could not be saved",
+      "published": "Homepage published",
+      "publish_failed": "The homepage could not be published",
+      "save": "Save draft",
+      "saving": "Saving…",
+      "publish": "Publish",
+      "publishing": "Publishing…",
+      "published_at": "Published {{date}}",
+      "not_published": "Not published",
+      "page_settings": "Page settings",
+      "page_title": "Internal page name",
+      "add_section": "Add a section",
+      "add_section_help": "Start with a focused set of safe storefront sections.",
+      "preview": "Live preview",
+      "preview_help": "This preview uses the draft. Customers only see the published version.",
+      "section": {
+        "hero": "Hero",
+        "product_grid": "Product grid"
+      },
+      "section_position": "Section {{position}}",
+      "move_up": "Move section up",
+      "move_down": "Move section down",
+      "remove_section": "Remove section",
+      "heading": "Heading",
+      "subheading": "Description",
+      "button_label": "Button label",
+      "button_link": "Button link",
+      "add_button": "Add button",
+      "remove_button": "Remove button",
+      "default_button_label": "Browse products",
+      "product_limit": "Number of products",
+      "empty_preview": "Add a section to start building the homepage.",
+      "heading_placeholder": "Tell customers what makes this brand special",
+      "subheading_placeholder": "A short, clear introduction to the products and the people behind them.",
+      "products_placeholder": "Featured products"
+    },
+    "store_readiness": {
+      "title": "Prepare this store",
+      "description": "Complete the essentials before accepting real orders.",
+      "ready": "Ready to launch",
+      "in_progress": "In preparation",
+      "complete": "Complete",
+      "configure": "Configure",
+      "launch": "Launch store",
+      "launching": "Launching…",
+      "launched": "The store is now live",
+      "launch_failed": "The store could not be launched",
+      "checks": {
+        "business_details": "Seller and contact details",
+        "product": "At least one active product",
+        "payment_method": "Active payment method",
+        "shipping": "Delivery for the default country",
+        "legal_documents": "Terms, privacy and returns",
+        "homepage": "Published homepage"
+      }
+    },
+    "legal": {
+      "title": "Legal documents",
+      "subtitle": "Publish the store's terms, privacy, returns and delivery information.",
+      "notice_title": "These documents belong to the seller",
+      "notice": "Sklepik provides a place to publish the text, not legal advice. Adapt every document to the business and have it reviewed when needed.",
+      "load_failed": "The legal documents could not be loaded",
+      "content": "Document content",
+      "save": "Save document",
+      "saving": "Saving…",
+      "saved": "{{name}} saved",
+      "save_failed": "The document could not be saved"
+    },
     "branding": {
       "app_name": "Spree Admin",
       "powered_by": "مدعوم من Spree Commerce"
     },
     "nav": {
       "home": "الرئيسية",
+      "editor": "Storefront editor",
       "account": "الحساب",
       "orders": "الطلبات",
       "draft_orders": "مسودات الطلبات",
@@ -126,7 +200,8 @@
         "api_keys": "مفاتيح API",
         "webhooks": "Webhooks",
         "allowed_origins": "المصادر المسموح بها",
-        "profile": "الملف الشخصي"
+        "profile": "الملف الشخصي",
+        "legal": "Legal documents"
       }
     },
     "fields": {
