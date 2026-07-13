@@ -26,7 +26,7 @@ module Spree
         host = normalize_host(@url)
         return if host.blank?
 
-        @scope.detect { |store| normalize_host(store.url) == host }
+        @scope.all.detect { |store| normalize_host(store.url) == host }
       end
 
       # Strips scheme, path and port, lower-cases. Mirrors the host extraction

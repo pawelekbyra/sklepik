@@ -118,4 +118,40 @@ RSpec.describe 'Admin Stores API', type: :request, swagger_doc: 'api-reference/a
       end
     end
   end
+
+  describe 'POST /api/v3/admin/stores atomicity' do
+    let(:params) do
+      {
+        name: 'Atomic Shop',
+        url: 'atomic-shop.example.com',
+        mail_from_address: 'orders@atomic-shop.example.com'
+      }
+    end
+
+    before do
+      admin_user
+      store
+
+      allow_any_instance_of(Spree::Store).to receive(:add_user) do
+        membership = Spree::RoleUser.new
+        membership.errors.add(:role, :blank)
+        raise ActiveRecord::RecordInvalid.new(membership)
+      end
+    end
+
+    it 'rolls the store back when assigning its owner fails' do
+      expect do
+        post '/api/v3/admin/stores',
+             params: params.to_json,
+             headers: {
+               'Authorization' => "Bearer #{admin_jwt_token}",
+               'Content-Type' => 'application/json'
+             }
+      end.not_to change(Spree::Store.unscoped, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(JSON.parse(response.body).dig('error', 'details', 'role')).to be_present
+      expect(Spree::Store.unscoped.find_by(url: params[:url])).to be_nil
+    end
+  end
 end

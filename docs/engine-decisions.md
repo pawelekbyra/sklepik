@@ -55,6 +55,32 @@ Dodatkowe informacje, linki do PR, issue lub commitów.
 
 ## Log decyzji
 
+## 2026-07-13 — Atomowe utworzenie sklepu i przypisanie właściciela
+
+### Status
+
+Wdrożona.
+
+### Kontekst
+
+`Admin::StoresController#create` najpierw zapisywał `Store`, a dopiero potem wywoływał `Store#add_user`. Jeżeli utworzenie `RoleUser` nie powiodło się, endpoint kończył się błędem, ale zapisany sklep wraz z rekordami bootstrapu pozostawał bez właściciela. Dodatkowo zwykłe `store.save` gubiło szczegóły błędu, gdy `after_create` odrzucał zagnieżdżony `Market` albo `MarketCountry`, ponieważ kontroler renderował wyłącznie puste w takim przypadku `store.errors`.
+
+### Decyzja
+
+Zapis sklepu przez `save!` i przypisanie twórcy przez `add_user` wykonują się w jednej `ApplicationRecord.transaction`. Każdy `ActiveRecord::RecordInvalid` wycofuje cały bootstrap i trafia do istniejącego wspólnego handlera API, który renderuje błędy faktycznie niepoprawnego rekordu.
+
+### Uzasadnienie
+
+Sklep bez właściciela jest stanem nieużytecznym i blokuje późniejszy dostęp przez kontrolę membershipu. Jedna transakcja daje prostą, bazodanową gwarancję all-or-nothing bez wprowadzania nowego serwisu dla krótkiej orkiestracji dwóch istniejących operacji. Test requestowy wymusza awarię `add_user` i sprawdza rollback rekordu sklepu.
+
+### Wpływ na upstream
+
+Zmiana jest lokalna dla nowego kontrolera Admin API tego forka. Nie zmienia schematu odpowiedzi sukcesu, Store API, `@spree/sdk` ani kodu `sklepikFront`; przy błędzie 422 poprawia treść istniejącej koperty błędu.
+
+### Notatki
+
+Nie zmieniono modeli core ani schematu bazy. Rozszerzenie korzysta wyłącznie z transakcji Active Record i istniejącego `ErrorHandler` API v3.
+
 ## 2026-07-13 — `RoleUser#store` derywowany z `resource`, gdy resource jest sklepem
 
 ### Status
@@ -81,7 +107,7 @@ Brak wpływu na Store API konsumowane przez `sklepikFront` — to zmiana modelu 
 
 ### Notatki
 
-Naprawione w tej samej sesji: `store_controller_spec.rb` (zbyt szeroki `include_context` maskujący ten bug + brakująca seed roli `'admin'` w teście z traitem `:without_admin_role`), `admin_user_methods_spec.rb` (ten sam wzorzec brakującej roli), `stores_spec.rb` (fałszywa deklaracja `security [api_key: []]` + brakujący fixture strefy wysyłkowej wymagany przez `ensure_default_market`). Pełne podsumowanie weryfikacji (333 przykłady, 0 failures łącznie) w `docs/roadmap.md` F25. Znany, nienaprawiony jeszcze dług UX: `StoresController#create` zwraca puste `message` w 422, gdy błąd pochodzi z `Market`/`MarketCountry` (zagnieżdżone w `after_create`), nie z samego `Store` — patrz `docs/technical-debt.md`.
+Naprawione w tej samej sesji: `store_controller_spec.rb` (zbyt szeroki `include_context` maskujący ten bug + brakująca seed roli `'admin'` w teście z traitem `:without_admin_role`), `admin_user_methods_spec.rb` (ten sam wzorzec brakującej roli), `stores_spec.rb` (fałszywa deklaracja `security [api_key: []]` + brakujący fixture strefy wysyłkowej wymagany przez `ensure_default_market`). Pełne podsumowanie weryfikacji (333 przykłady, 0 failures łącznie) w `docs/roadmap.md` F25. Opisany wtedy dług pustego 422 z błędu `Market`/`MarketCountry` został zamknięty przez atomowy bootstrap sklepu z 2026-07-13 (wpis wyżej).
 
 ## 2026-07-12 — Admin API rozwiązuje `current_store` z nagłówka, nie z hosta (wielosklepowość, Faza 1)
 
@@ -173,7 +199,7 @@ Wpływa na `@spree/sdk` konsumowany przez `sklepikFront` (storefront) i `package
 
 ### Status
 
-Kod napisany na gałęzi `claude/plan-review-improvement-cpj6fw`; **testy nieuruchomione lokalnie** (brak zbudowanego `spree:test_app` w tej sesji) — do uruchomienia przed mergem, analogicznie jak F25. Pełny kontekst i kolejność: `docs/plans/store-factory.md` (Etap 0).
+Wdrożona baza oraz lokalne utwardzenie gotowe do publikacji. Zweryfikowane 2026-07-13 na Postgresie: 50 przykładów RSpec obejmujących Store API controller, resolving, cache, admin create i finder — 0 failures. Pełny kontekst: `docs/plans/store-factory.md` (Etap 0).
 
 ### Kontekst
 
@@ -185,6 +211,8 @@ Audyt kodu (2026-07-13) potwierdził, że storefront (Store API) nie rozpoznaje 
 2. **Cache kolekcji scope'owany po sklepie.** `collection_cache_key` dostał `current_store&.id` na początku klucza; `set_vary_headers` dołożył `x-spree-api-key` do `Vary` (klucz publishable jest per-sklep) — wspólny cache pośredni nie poda odpowiedzi jednego sklepu drugiemu.
 3. **`Spree::Base.for_store` — ostry brzeg udokumentowany, nie zmieniony.** Cichy fallback „zwróć wszystko bez scope" jest load-bearing (userzy są globalni świadomie, `UserMethods.for_store` zwraca `self`); zmiana na „rzucaj błąd" złamałaby wiele modeli. Dodano komentarz-ostrzeżenie w kodzie: nowy model tenant-scoped musi mieć relację na `Store`, inaczej przecieka tu bez błędu.
 4. **`Admin::StoresController#create` atomowe.** `store.save!` + `store.add_user` w jednej transakcji (`add_user` używa `find_or_create_by!`, może rzucić) — koniec ryzyka sklepu bez właściciela.
+5. **Publishable API key wyznacza tenant przed autoryzacją.** `StoreResolution` znajduje aktywny klucz globalnie (token jest unikalny), ustawia `Spree::Current.store`, a następnie wymaga spójności jawnego `X-Spree-Store-Id` i hosta, jeśli host należy do innego aktywnego sklepu. Dzięki temu wspólny host API obsługuje wiele niezależnych storefrontów bez polegania na domenie backendu.
+6. **Cache uwzględnia cały kontekst tenantowy.** ETag obejmuje store, market, channel, currency i locale; `Vary` jest scalany bez niszczenia wcześniejszych wartości i zawiera odpowiadające nagłówki requestu.
 
 ### Uzasadnienie
 
@@ -196,7 +224,7 @@ Częściowo przywraca upstreamowe zachowanie (host-based resolution), które for
 
 ### Notatki
 
-Storefront (`sklepikFront`) skorzysta automatycznie, gdy powstanie drugi sklep z własnym `Store#url` i domeną wskazującą na backend. Osobne konta klientów per sklep (decyzja właściciela) to osobny, większy plan: `docs/plans/per-store-customer-accounts.md` — zależny od tego Etapu 0.
+Storefront (`sklepikFront`) może korzystać ze wspólnego hosta API: publishable key wybiera sklep, a domena/`X-Spree-Store-Id` są dodatkowymi kontrolami spójności. Podczas testów poprawiono też `FindDefault`: scope może być klasą modelu, więc iteracja wymaga `@scope.all.detect`, nie `@scope.detect`. Osobne konta klientów per sklep (decyzja właściciela) pozostają osobnym planem: `docs/plans/per-store-customer-accounts.md`.
 
 ## 2026-07-13 — Synchronizacja cen EUR przeniesiona do backendu (z cronu storefrontu)
 

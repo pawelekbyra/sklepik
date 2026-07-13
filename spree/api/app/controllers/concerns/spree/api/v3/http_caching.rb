@@ -7,9 +7,19 @@ module Spree
       # - Guest users: Public HTTP caching with CDN support (5-15 min TTL)
       # - Authenticated users: Private, no-store (no caching)
       #
-      # Uses ETag and Last-Modified headers for cache validation.
+      # Uses ETag headers for cache validation.
       module HttpCaching
         extend ActiveSupport::Concern
+
+        PUBLIC_CACHE_VARY_HEADERS = [
+          'Accept',
+          'X-Spree-API-Key',
+          'X-Spree-Store-Id',
+          'X-Spree-Country',
+          'X-Spree-Currency',
+          'X-Spree-Locale',
+          'X-Spree-Channel'
+        ].freeze
 
         included do
           after_action :set_vary_headers
@@ -22,13 +32,11 @@ module Spree
           current_user.nil?
         end
 
-        # Set Vary headers to ensure proper CDN caching by currency/locale and,
-        # critically, by store: the publishable API key is store-specific, so
-        # varying on it stops an intermediary cache that ignores Host from
-        # serving one store's response to another.
+        # Partition shared caches by every request header that can select a
+        # store or alter the Store API representation.
         def set_vary_headers
           if guest_user?
-            response.headers['Vary'] = 'Accept, x-spree-currency, x-spree-locale, x-spree-api-key'
+            merge_vary_headers(PUBLIC_CACHE_VARY_HEADERS)
           else
             response.headers['Cache-Control'] = 'private, no-store'
           end
@@ -70,14 +78,29 @@ module Spree
 
           expires_in expires_in, public: true
 
-          # Use Rails' stale? which handles ETag and Last-Modified
-          stale?(resource, public: true)
+          response.headers['ETag'] = %("#{Digest::MD5.hexdigest(resource_cache_key(resource))}")
+
+          if request.fresh?(response)
+            head :not_modified
+            false
+          else
+            true
+          end
         end
 
         private
 
+        def merge_vary_headers(headers)
+          current_headers = response.headers['Vary'].to_s.split(',').map(&:strip).reject(&:blank?)
+          return if current_headers.include?('*')
+
+          combined_headers = (current_headers + headers).uniq(&:downcase)
+          response.headers['Vary'] = combined_headers.join(', ')
+        end
+
         # Build a cache key for a collection
-        # Includes: latest updated_at, total count, query params, pagination, expand, currency, locale
+        # Includes: tenant context, latest updated_at, total count, query
+        # params, pagination, expand, currency, and locale.
         def collection_cache_key(collection)
           # For ActiveRecord collections use updated_at, for plain arrays use store's updated_at as proxy
           latest_updated_at = if collection.first&.respond_to?(:updated_at)
@@ -87,23 +110,33 @@ module Spree
                               end
 
           parts = [
-            # Scope the cache key to the store so two stores that happen to
-            # share updated_at/count/params/currency/locale never collide on
-            # the same ETag — a shared CDN/proxy must not serve one store's
-            # cached collection to another.
-            current_store&.id,
+            *tenant_cache_key_parts,
             latest_updated_at,
             @pagy&.count || collection.size,
             params[:expand],
             params[:fields],
             params[:q]&.to_json,
             params[:page],
-            params[:limit],
-            current_currency,
-            current_locale
+            params[:limit]
           ]
 
           parts.compact.join('/')
+        end
+
+        def resource_cache_key(resource)
+          ([resource.cache_key_with_version] + tenant_cache_key_parts).compact.join('/')
+        end
+
+        # Use resolved records, not raw headers, so aliases and fallback values
+        # share a variant only when they resolve to the same tenant context.
+        def tenant_cache_key_parts
+          [
+            current_store&.cache_key_with_version,
+            Spree::Current.market&.cache_key_with_version,
+            Spree::Current.channel&.cache_key_with_version,
+            current_currency,
+            current_locale
+          ]
         end
       end
     end
