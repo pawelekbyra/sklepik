@@ -1,6 +1,6 @@
 # sklepik — instrukcja dla agentów kodowania
 
-To repozytorium to **silnik commerce projektu Kakałowy Sklepik**: backend Rails (fork Spree), Store API + Admin API v3, panel administracyjny React (`packages/dashboard`) i SDK TypeScript. Storefront klienta żyje w osobnym repo `pawelekbyra/sklepikFront` — zmian frontendowych klienta nie robi się tutaj.
+To repozytorium to **platforma Sklepik do uruchamiania i prowadzenia niezależnych sklepów**: backend Rails (fork Spree), Store API + Admin API v3, tenanty i właściciele, Store Factory, panel administracyjny z edytorem (`packages/dashboard`) oraz SDK TypeScript. Sklep kakao jest pierwszym sklepem referencyjnym, nie zakresem całego produktu. Storefront klienta żyje w osobnym repo `pawelekbyra/sklepikFront`.
 
 **Pełne zasady pracy agenta, konwencje techniczne i protokół dokumentacji: [`CLAUDE.md`](CLAUDE.md).** Ten plik jest tylko drogowskazem.
 

@@ -6,6 +6,8 @@ module Spree
   class Store < Spree.base_class
     has_prefix_id :store # Spree-specific: store
 
+    LAUNCH_STATUSES = %w[draft live suspended].freeze
+
     include FriendlyId
     include Spree::TranslatableResource
     include Spree::Metafields
@@ -111,6 +113,8 @@ module Spree
     has_many :reports, class_name: 'Spree::Report'
     has_many :exports, class_name: 'Spree::Export'
     has_many :provisioning_runs, class_name: 'Spree::ProvisioningRun', dependent: :destroy
+    has_many :storefront_pages, class_name: 'Spree::StorefrontPage',
+                                   dependent: :destroy, inverse_of: :store
 
     has_many :integrations, class_name: 'Spree::Integration'
 
@@ -140,6 +144,7 @@ module Spree
     validates :preferred_stock_reservation_ttl_minutes, numericality: { only_integer: true, greater_than: 0 }
     validates :preferred_storefront_access, inclusion: { in: Spree::Channel::Gating::STOREFRONT_ACCESS }
     validates :mail_from_address, email: { allow_blank: false }
+    validates :launch_status, inclusion: { in: LAUNCH_STATUSES }, allow_nil: true
     # FIXME: we should remove this condition in v5
     if !ENV['SPREE_DISABLE_DB_CONNECTION'] &&
        connected? &&
@@ -157,6 +162,20 @@ module Spree
     #
     has_one_attached :logo, service: Spree.public_storage_service_name
     has_one_attached :mailer_logo, service: Spree.public_storage_service_name
+
+    # Rows created before Store Factory predate launch gating and remain live.
+    # New self-service stores set the persisted value to +draft+ explicitly.
+    def launch_status
+      self[:launch_status].presence || 'live'
+    end
+
+    def live?
+      launch_status == 'live'
+    end
+
+    def draft?
+      launch_status == 'draft'
+    end
 
     #
     # Callbacks

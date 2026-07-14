@@ -1,6 +1,6 @@
 # Architektura systemu
 
-Jedyna mapa systemu Kakałowy Sklepik. Jeśli infrastruktura się zmienia, aktualizuje się ten plik — nie tworzy się nowych map.
+Jedyna mapa platformy Sklepik i jej sklepów. Sklep kakao jest pierwszym tenantem referencyjnym. Jeśli infrastruktura się zmienia, aktualizuje się ten plik — nie tworzy się nowych map.
 
 ## Trzy aplikacje, jeden backend
 

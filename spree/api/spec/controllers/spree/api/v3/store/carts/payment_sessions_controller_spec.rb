@@ -21,6 +21,17 @@ RSpec.describe Spree::Api::V3::Store::Carts::PaymentSessionsController, type: :c
   end
 
   describe 'POST #create' do
+    it 'does not create a payment session while the store is a draft' do
+      allow(controller).to receive(:current_store).and_return(store)
+      allow(store).to receive(:live?).and_return(false)
+
+      expect do
+        post :create, params: { cart_id: order.prefixed_id, payment_method_id: payment_method.prefixed_id }
+      end.not_to change(Spree::PaymentSession, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
     it 'creates a payment session' do
       post :create, params: { cart_id: order.prefixed_id, payment_method_id: payment_method.prefixed_id }
 

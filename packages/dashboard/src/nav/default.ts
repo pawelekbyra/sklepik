@@ -4,6 +4,7 @@ import {
   HomeIcon,
   InboxIcon,
   PackageIcon,
+  PaletteIcon,
   SettingsIcon,
   TagIcon,
   UsersIcon,
@@ -72,6 +73,15 @@ nav.add({
       position: 500,
     },
   ],
+})
+
+nav.add({
+  key: 'editor',
+  label: i18n.t('admin.nav.editor'),
+  path: '/editor',
+  icon: PaletteIcon,
+  subject: Subject.Store,
+  position: 350,
 })
 
 nav.add({

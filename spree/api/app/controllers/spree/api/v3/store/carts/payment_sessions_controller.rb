@@ -4,9 +4,11 @@ module Spree
       module Store
         module Carts
           class PaymentSessionsController < Store::BaseController
+            include Spree::Api::V3::Store::RequiresLiveStore
             include Spree::Api::V3::CartResolvable
             include Spree::Api::V3::OrderLock
 
+            before_action :require_live_store!, only: [:create, :update, :complete]
             before_action :find_cart!
             before_action :set_payment_session, only: [:show, :update, :complete]
 

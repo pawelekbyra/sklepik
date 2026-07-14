@@ -1,6 +1,8 @@
-# Kakałowy Sklepik — silnik commerce (backend + admin)
+# Sklepik — platforma uruchamiania sklepów
 
-Backend i panel administracyjny własnej platformy e-commerce dla produktów kakao. To repozytorium jest **silnikiem** systemu: Rails + REST API (fork Spree Commerce) oraz panel administracyjny React. Doświadczenie klienta żyje w drugim repozytorium — [`pawelekbyra/sklepikFront`](https://github.com/pawelekbyra/sklepikFront) (storefront Next.js).
+Backend, Store Factory i panel właściciela platformy, która pozwala tworzyć oraz prowadzić niezależne sklepy internetowe. Użytkownik może założyć konto, utworzyć sklep, zarządzać produktami i wyglądem, przejść checklistę gotowości, a następnie uruchomić sprzedaż. Pierwszy sklep z produktami kakao jest sklepem referencyjnym, nie zakresem całego produktu.
+
+Repo zawiera Rails + REST API (fork Spree Commerce), wielosklepowość, provisioning GitHub/Vercel oraz panel React. Storefronty klientów powstają z wersjonowanego rdzenia w [`pawelekbyra/sklepikFront`](https://github.com/pawelekbyra/sklepikFront).
 
 ```text
 pawelekbyra/sklepik       ← TO REPO: silnik, backend, Admin API + Store API, panel admina, SDK
@@ -21,9 +23,9 @@ Zasada podziału: `sklepik` jest źródłem prawdy dla commerce (produkty, ceny,
 
 | Katalog | Zawartość |
 |---|---|
-| `spree/core` | Silnik commerce (gem Ruby) — modele, serwisy, logika biznesowa |
+| `spree/core` | Silnik commerce, tenanty, dokumenty storefrontu i logika gotowości sklepu |
 | `spree/api` | Store API + Admin API v3 (REST, gem Ruby) |
-| `packages/dashboard` | Panel administracyjny — React SPA (Vite, TanStack), deployowany na Vercel |
+| `packages/dashboard` | Panel właściciela i edytor storefrontu — React SPA (Vite, TanStack) |
 | `packages/dashboard-core` / `dashboard-ui` | Framework i design system panelu |
 | `packages/sdk` / `admin-sdk` / `sdk-core` | Klienty TypeScript do Store/Admin API |
 | `packages/cli` | CLI do zarządzania projektem (Docker) |
@@ -34,12 +36,12 @@ Zasada podziału: `sklepik` jest źródłem prawdy dla commerce (produkty, ceny,
 
 | Co | Gdzie | Adres |
 |---|---|---|
-| Backend Rails | Render (`kakaowy-sklepik-backend`, Frankfurt) + Postgres + Redis | `kakaowy-sklepik.onrender.com` |
+| Backend Rails | Oracle Cloud VPS + Postgres + Redis + Sidekiq | `141-253-103-172.nip.io` |
 | Panel admina | Vercel (projekt `sklepik_back`, Root Directory `packages/dashboard`) | `sklepik-gamma.vercel.app` |
 | Storefront | Vercel (projekt `sklepik_front`, repo `sklepikFront`) | `sklepikkk.vercel.app` |
 | Media produktów | Cloudflare R2 (`kakaowy-sklepik-media`) | przez `CDN_HOST` |
 
-Szczegóły: [`docs/deployment-render.md`](docs/deployment-render.md) i [`docs/architektura.md`](docs/architektura.md).
+Szczegóły: [`docs/deployment-oracle.md`](docs/deployment-oracle.md) i [`docs/architektura.md`](docs/architektura.md).
 
 ## Rozwój lokalny
 

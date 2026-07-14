@@ -8,6 +8,7 @@ module Spree
 
           skip_before_action :set_resource
           prepend_before_action :require_authentication!, only: [:index, :associate]
+          before_action :require_live_store!, only: :complete
 
           # GET /api/v3/store/carts/:id
           # Returns cart by prefixed ID
@@ -141,6 +142,16 @@ module Spree
           end
 
           private
+
+          def require_live_store!
+            return if current_store.live?
+
+            render_error(
+              code: ERROR_CODES[:cart_cannot_complete],
+              message: 'This store is not accepting orders yet.',
+              status: :unprocessable_content
+            )
+          end
 
           def permitted_params
             params.permit(

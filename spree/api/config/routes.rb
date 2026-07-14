@@ -9,6 +9,7 @@ Spree::Core::Engine.add_routes do
 
         # Store branding/config (name, logo, default currency/locale)
         resource :store, only: [:show], controller: 'store'
+        resource :storefront_page, only: [:show], controller: 'storefront_pages'
 
         # Markets
         resources :markets, only: [:index, :show] do
@@ -152,7 +153,13 @@ Spree::Core::Engine.add_routes do
         patch 'me', to: 'me#update'
 
         # Store Settings
-        resource :store, only: [:show, :update], controller: 'store'
+        resource :store, only: [:show, :update], controller: 'store' do
+          get :readiness
+          post :launch
+        end
+        resource :storefront_page, only: [:show, :update], controller: 'storefront_pages' do
+          post :publish
+        end
         # Cross-store: which stores this admin belongs to, and creating new ones
         resources :stores, only: [:index, :create], controller: 'stores' do
           # Store Factory (docs/plans/store-factory.md): provisions an
@@ -192,6 +199,7 @@ Spree::Core::Engine.add_routes do
           end
         end
         resources :roles, only: [:index, :show]
+        resources :policies, only: [:index, :show, :update]
 
         # Direct Uploads (Active Storage)
         resources :direct_uploads, only: [:create]

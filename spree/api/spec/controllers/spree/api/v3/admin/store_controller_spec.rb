@@ -205,6 +205,46 @@ RSpec.describe Spree::Api::V3::Admin::StoreController, type: :controller do
         end
       end
     end
+
+    describe 'store launch readiness' do
+      let(:checks) do
+        [{ key: 'product', ready: ready }]
+      end
+      let(:readiness_result) do
+        { status: store.launch_status, ready: ready, checks: checks }
+      end
+
+      before do
+        store.update_column(:launch_status, 'draft')
+        allow(Spree::Stores::ReadinessCheck).to receive(:call).with(store: store).and_return(readiness_result)
+      end
+
+      context 'when configuration is incomplete' do
+        let(:ready) { false }
+
+        it 'reports the missing checks and refuses to launch' do
+          get :readiness, as: :json
+          expect(response).to have_http_status(:ok)
+          expect(json_response).to include('status' => 'draft', 'ready' => false)
+
+          post :launch, as: :json
+          expect(response).to have_http_status(:unprocessable_content)
+          expect(store.reload).to be_draft
+        end
+      end
+
+      context 'when every check is complete' do
+        let(:ready) { true }
+
+        it 'launches the store explicitly' do
+          post :launch, as: :json
+
+          expect(response).to have_http_status(:ok)
+          expect(store.reload).to be_live
+          expect(json_response['launch_status']).to eq('live')
+        end
+      end
+    end
   end
 
   # Deliberately does NOT use `include_context 'API v3 Admin authenticated'`:

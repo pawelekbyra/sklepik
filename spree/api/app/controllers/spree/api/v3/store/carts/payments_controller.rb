@@ -4,8 +4,10 @@ module Spree
       module Store
         module Carts
           class PaymentsController < Store::BaseController
+            include Spree::Api::V3::Store::RequiresLiveStore
             include Spree::Api::V3::CartResolvable
 
+            before_action :require_live_store!, only: :create
             before_action :find_cart!
 
             # POST /api/v3/store/carts/:cart_id/payments

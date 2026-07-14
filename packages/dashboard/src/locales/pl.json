@@ -37,11 +37,85 @@
         "empty": "Brak pasujących partii"
       }
     },
+    "storefront_editor": {
+      "title": "Edytor sklepu",
+      "subtitle": "Zbuduj stronę główną, zapisz szkic i opublikuj go, gdy będzie gotowy.",
+      "load_failed": "Nie udało się wczytać strony sklepu",
+      "saved": "Szkic został zapisany",
+      "save_failed": "Nie udało się zapisać szkicu",
+      "published": "Strona główna została opublikowana",
+      "publish_failed": "Nie udało się opublikować strony głównej",
+      "save": "Zapisz szkic",
+      "saving": "Zapisywanie…",
+      "publish": "Opublikuj",
+      "publishing": "Publikowanie…",
+      "published_at": "Opublikowano {{date}}",
+      "not_published": "Jeszcze nieopublikowana",
+      "page_settings": "Ustawienia strony",
+      "page_title": "Wewnętrzna nazwa strony",
+      "add_section": "Dodaj sekcję",
+      "add_section_help": "Na początek udostępniamy mały zestaw bezpiecznych sekcji sklepu.",
+      "preview": "Podgląd na żywo",
+      "preview_help": "Podgląd pokazuje szkic. Klienci widzą wyłącznie opublikowaną wersję.",
+      "section": {
+        "hero": "Sekcja otwierająca",
+        "product_grid": "Siatka produktów"
+      },
+      "section_position": "Sekcja {{position}}",
+      "move_up": "Przenieś sekcję wyżej",
+      "move_down": "Przenieś sekcję niżej",
+      "remove_section": "Usuń sekcję",
+      "heading": "Nagłówek",
+      "subheading": "Opis",
+      "button_label": "Tekst przycisku",
+      "button_link": "Link przycisku",
+      "add_button": "Dodaj przycisk",
+      "remove_button": "Usuń przycisk",
+      "default_button_label": "Zobacz produkty",
+      "product_limit": "Liczba produktów",
+      "empty_preview": "Dodaj sekcję, aby zacząć budować stronę główną.",
+      "heading_placeholder": "Opowiedz, co wyróżnia tę markę",
+      "subheading_placeholder": "Krótko przedstaw produkty i ludzi, którzy za nimi stoją.",
+      "products_placeholder": "Polecane produkty"
+    },
+    "store_readiness": {
+      "title": "Przygotuj ten sklep",
+      "description": "Uzupełnij podstawy, zanim sklep zacznie przyjmować prawdziwe zamówienia.",
+      "ready": "Gotowy do uruchomienia",
+      "in_progress": "W przygotowaniu",
+      "complete": "Gotowe",
+      "configure": "Skonfiguruj",
+      "launch": "Uruchom sklep",
+      "launching": "Uruchamianie…",
+      "launched": "Sklep jest już aktywny",
+      "launch_failed": "Nie udało się uruchomić sklepu",
+      "checks": {
+        "business_details": "Dane sprzedawcy i kontakt",
+        "product": "Co najmniej jeden aktywny produkt",
+        "payment_method": "Aktywna metoda płatności",
+        "shipping": "Dostawa w kraju domyślnym",
+        "legal_documents": "Regulamin, prywatność i zwroty",
+        "homepage": "Opublikowana strona główna"
+      }
+    },
+    "legal": {
+      "title": "Dokumenty prawne",
+      "subtitle": "Opublikuj regulamin, politykę prywatności oraz informacje o zwrotach i dostawie.",
+      "notice_title": "Za treść odpowiada sprzedawca",
+      "notice": "Sklepik udostępnia miejsce publikacji, ale nie świadczy porady prawnej. Dopasuj każdy dokument do działalności i w razie potrzeby skonsultuj go ze specjalistą.",
+      "load_failed": "Nie udało się wczytać dokumentów prawnych",
+      "content": "Treść dokumentu",
+      "save": "Zapisz dokument",
+      "saving": "Zapisywanie…",
+      "saved": "Zapisano: {{name}}",
+      "save_failed": "Nie udało się zapisać dokumentu"
+    },
     "branding": {
       "app_name": "Panel administracyjny"
     },
     "nav": {
       "home": "Strona główna",
+      "editor": "Edytor sklepu",
       "account": "Konto",
       "orders": "Zamówienia",
       "draft_orders": "Zamówienia robocze",
@@ -77,7 +151,8 @@
         "api_keys": "Klucze API",
         "webhooks": "Webhooki",
         "allowed_origins": "Dozwolone źródła",
-        "profile": "Profil"
+        "profile": "Profil",
+        "legal": "Dokumenty prawne"
       }
     },
     "fields": {

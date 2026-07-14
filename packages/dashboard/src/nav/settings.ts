@@ -1,6 +1,7 @@
 import { Subject, settingsNav } from '@spree/dashboard-core'
 import {
   CreditCardIcon,
+  FileTextIcon,
   GlobeIcon,
   GlobeLockIcon,
   KeyRoundIcon,
@@ -99,6 +100,16 @@ settingsNav.add({
   group: 'fulfillment',
   position: 100,
   subject: Subject.StockLocation,
+})
+
+settingsNav.add({
+  key: 'settings.legal',
+  labelKey: 'admin.settings_nav.items.legal',
+  path: '/legal',
+  icon: FileTextIcon,
+  group: 'store',
+  position: 175,
+  subject: Subject.Store,
 })
 
 settingsNav.add({
