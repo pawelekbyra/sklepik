@@ -1,8 +1,9 @@
 # Sklepik — kanoniczna macierz funkcji produktu
 
 **Stan audytu:** 2026-07-14  
-**Repo backend/admin:** `/home/pawe-perfect/Dokumenty/sklepik`, HEAD `055a1eb5f9`, z lokalnymi zmianami  
-**Repo storefront:** `/home/pawe-perfect/Dokumenty/sklepikFront`, HEAD `558ecab`, z lokalnymi zmianami  
+**Repo backend/admin:** `/home/pawe-perfect/Dokumenty/sklepik`, audyt bazowy `055a1eb5f9`, wydanie F26–F27 `31532f602b`
+
+**Repo storefront:** `/home/pawe-perfect/Dokumenty/sklepikFront`, audyt bazowy `558ecab`, renderer produkcyjny `0f83b94`
 **Zasada:** kod jest dowodem istnienia; dokumentacja i pliki planów nie są dowodem. Obecność modelu Spree nie oznacza, że właściciel lub klient może użyć funkcji.
 
 ## Executive summary
@@ -21,7 +22,7 @@ Największa pułapka interpretacyjna: backend zawiera więcej możliwości niż 
 | Panel właściciela | dobry dla katalogu i zamówień | brak pełnej obsługi zwrotów, reklamacji, importu, faktur i supportu |
 | Storefront | dobry pilotowo | 97/97 unit/integration tests przeszło; tylko jeden checkout E2E i nie przeciw temu forkowi backendu |
 | Store Factory | częściowy | wartościowy wyróżnik, lecz wymaga hardeningu, pełnego E2E i lifecycle/handoff |
-| Editor/CMS | MVP lokalne | tylko hero + product grid; kod obecnie niecommitowany, brak uploadu tła i pełnego themingu |
+| Editor/CMS | MVP produkcyjne | hero + product grid, draft/publish i renderer wdrożone; brak uploadu tła, pełnego themingu i zalogowanego owner E2E |
 | Produkcja/operacje | częściowe | Sentry/Vercel Analytics istnieją warunkowo; backup/restore, alerty i SLO niezweryfikowane |
 | Polski baseline | luka P0/P1 | brak dowodu na BLIK/P24/InPost, faktury/paragony, returns portal i consent management |
 | Frontier/AI | prawie całkowity brak | nie jest blockerem pierwszych sprzedaży; wybierać dopiero po danych i przez partnerów/flags |
@@ -62,7 +63,7 @@ Skróty dowodów: `B:` = repo `sklepik`, `F:` = repo `sklepikFront`. „Test” 
 | Domena własna + DNS/SSL | P1 | core custom domain istnieje | MISS w factory | — | MISS | czyta site URL | MISS | MISS | MISS | `B:spree/core/db/migrate/20250119165904_create_spree_custom_domains.rb`; brak w provisioning |
 | Retry/resume/rollback provisioningu | P0-public | PART | tworzy nowy run | — | można ponowić nowy run | — | Sidekiq | service spec | MISS | `B:spree/core/app/services/spree/provisioning/provision_store.rb` jawnie bez persisted resume; brak cleanup repo/project |
 | Widoczny status etapów | P1 | PROD | PROD | — | PROD | — | worker | spec/model | UNVER | `B:spree/core/app/models/spree/provisioning_run.rb`; `B:packages/dashboard/src/components/store-factory/provisioning-status-card.tsx` |
-| Readiness i launch gating | P0 | HIDDEN | HIDDEN | HIDDEN | HIDDEN | HIDDEN | migracja + deploy | specs istnieją | UNVER | lokalne, niecommitowane: `B:spree/core/app/services/spree/stores/readiness_check.rb`; `B:.../requires_live_store.rb`; `B:.../store-readiness-card.tsx` |
+| Readiness i launch gating | P0 | PROD | PROD | PROD | PROD | — | skonfigurować płatność/wysyłkę/polityki | specs + CI | PARTIAL | wdrożone 2026-07-14; zalogowane owner E2E pozostaje: `B:spree/core/app/services/spree/stores/readiness_check.rb`; `B:.../requires_live_store.rb`; `B:.../store-readiness-card.tsx` |
 | Dodanie kolejnego sklepu przez admina | P1-agency | PROD | PROD | — | PROD | — | provisioning credentials opcjonalne | E2E store settings, bez factory | UNVER factory | `B:packages/dashboard/src/routes/_authenticated/$storeId/new-store.tsx`; admin `stores_controller.rb` |
 | Multi-store switcher i store scoping | P0 | PROD | PROD | — | PROD | — | poprawne role per store | liczne specs | PART | `B:packages/dashboard-core/src/components/store-switcher.tsx`; `B:spree/core/app/models/spree/role_user.rb` |
 | Zaproszenia pracowników | P1 | PROD | PROD | — | PROD | — | ActionMailer transport | dashboard E2E istnieje | UNVER email prod | `B:spree/api/.../admin/invitations_controller.rb`; `B:packages/dashboard/src/routes/.../settings/staff.tsx` |
@@ -115,7 +116,7 @@ Skróty dowodów: `B:` = repo `sklepik`, `F:` = repo `sklepikFront`. „Test” 
 | Wyszukiwanie tekstowe produktów | P0 | database + Meilisearch provider | — | PROD | global admin search | search bar/listing | database działa; Meili CFG | provider specs | UNVER Meili | `B:spree/core/app/models/spree/search_provider/*`; `F:src/components/search/SearchBar.tsx` |
 | Filtry cena/opcja/dostępność/sort | P0 | PROD | — | PROD `/products/filters` | — | PROD | — | utils/unit | PART E2E | `B:.../products/filters_controller.rb`; `F:src/components/products/filters/*` |
 | Semantic/visual search | P3 | MISS | MISS | MISS | MISS | MISS | provider/AI wymagany | MISS | MISS | brak embeddings/image search |
-| Homepage editor draft/publish | P1 | HIDDEN lokalnie | HIDDEN | HIDDEN | HIDDEN | HIDDEN renderer | migracja/deploy | specs istnieją, panel nieuruchomiony | UNVER | lokalne: `B:.../storefront_page.rb`; `B:.../editor.tsx`; `F:.../StorefrontPageRenderer.tsx` |
+| Homepage editor draft/publish | P1 | PROD | PROD | PROD | PROD | PROD renderer | migracja wykonana | specs + CI + publiczny smoke | PARTIAL | wdrożone 2026-07-14; brak zalogowanego publish E2E: `B:.../storefront_page.rb`; `B:.../editor.tsx`; `F:.../StorefrontPageRenderer.tsx` |
 | Sekcja hero | P1 | PART | PART | PART | heading/subheading/button | renderuje | — | model/API specs | UNVER | editor obsługuje tekst i button; background ID bez upload UI |
 | Product grid section | P1 | PART | PART | PART | heading + limit; taxon UI brak | render category ID jeśli istnieje | — | specs | UNVER | `B:.../editor.tsx`; `F:.../FeaturedProductsSection.tsx` |
 | Pełny theme/design tokens | P1 | MISS w nowym editorze | MISS | store branding częściowy | MISS | CSS stały/template | per-repo ręcznie | MISS | MISS | `F:src/app/globals.css`; brak merchant theme controls |
@@ -217,7 +218,7 @@ Skróty dowodów: `B:` = repo `sklepik`, `F:` = repo `sklepikFront`. „Test” 
 | Języki storefront PL/EN/DE/FR/ES | P1 | translations/markets | translations batch | locale-aware | panel ma kilka locale | next-intl messages | locale env/market | parity script + tests | UNVER pełna treść | `F:messages/*`; `F:scripts/check-locale-parity.ts`; translation models/API |
 | Języki panelu | P2 | user selected locale | me/locales | — | EN/PL/DE/FR/AR/ZH | — | — | locale files | UNVER parity | `B:packages/dashboard/src/locales/*` |
 | Rynki, domeny, waluty, locale | P2 international | PROD | PROD | PROD | PROD | PART | DNS/prices/tax | E2E markets | UNVER international checkout | market model/routes/context |
-| Polityki: privacy/terms/returns/shipping | P0 | PROD | HIDDEN lokalnie admin update | read | HIDDEN local legal UI | policy pages + checkout | treść prawnika | specs istnieją | UNVER | `B:.../policy.rb`; `F:src/app/.../policies/[slug]/page.tsx` |
+| Polityki: privacy/terms/returns/shipping | P0 | PROD | PROD admin update | read | PROD legal UI | policy pages + checkout | treść prawnika | specs + CI | PARTIAL | wdrożone; treść i zalogowane owner E2E pozostają: `B:.../policy.rb`; `F:src/app/.../policies/[slug]/page.tsx` |
 | GDPR: access/export/delete customer | P1 | PART delete/anonymize możliwości core | admin customer CRUD/export | profile update | PART | MISS self-service delete/export | procedura operatora | specs częściowe | MISS | brak kompletnego DSAR workflow |
 | Cookie consent | P0 przy analytics | MISS | MISS | MISS | MISS | MISS | CMP | MISS | MISS | brak |
 | EAA/accessibility | P0 quality | semantyka częściowa | — | — | shadcn częściowo | komponenty semantyczne | audyt WCAG wymagany | brak axe suite | MISS | dostępne aria w wielu komponentach, brak systemowego audytu |

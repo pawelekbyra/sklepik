@@ -162,11 +162,11 @@ Dynamiczne rozpoznawanie sklepu po domenie w storefroncie to Faza 2, samoobsług
 
 ## Faza 2 — Store Factory: od rejestracji do bezpiecznej publikacji
 
-**F26. Edytor storefrontu MVP** — oba repo — `[gotowe lokalnie 2026-07-14, czeka na deploy i E2E]`
+**F26. Edytor storefrontu MVP** — oba repo — `[wdrożone produkcyjnie 2026-07-14; zalogowane owner E2E pozostaje]`
 
 Backend przechowuje osobne wersje draft/published walidowanego dokumentu strony, chroni zapis optimistic lockingiem i udostępnia publicznie wyłącznie snapshot. Panel właściciela edytuje, porządkuje i publikuje sekcje hero/product grid z live preview. Wspólny storefront renderuje dokument, a przed pierwszą publikacją zachowuje dotychczasowy widok kakao. Następne sekcje, preview URL, motywy i generowanie AI mają rozszerzać ten sam wersjonowany kontrakt — bez dowolnego HTML/JS.
 
-**F27. Launch readiness i dokumenty prawne** — `sklepik` — `[gotowe lokalnie 2026-07-14, czeka na deploy i E2E]`
+**F27. Launch readiness i dokumenty prawne** — `sklepik` — `[wdrożone produkcyjnie 2026-07-14; zalogowane owner E2E pozostaje]`
 
 Nowy sklep zaczyna jako `draft`. Dashboard pokazuje checklistę danych firmy, produktu, płatności, wysyłki, dokumentów i opublikowanej strony. Admin ma edytor polityk z jawnym zastrzeżeniem, że nie są poradą prawną. Jawne uruchomienie przełącza sklep na `live` tylko po spełnieniu kontroli; backend blokuje tworzenie płatności, sesji i finalizację checkoutu wcześniej. Stare sklepy bez wartości kolumny pozostają aktywne.
 

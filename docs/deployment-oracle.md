@@ -153,6 +153,18 @@ Obecny Render deployment robi kilka istotnych rzeczy:
 
 Na Oracle można ten model odtworzyć w Docker Compose albo świadomie przejść na trwalszy katalog `server/`. Jeśli `server/` nadal będzie efemeryczny, zostaje ryzyko timestampów migracji opisane w [`deployment-render.md`](deployment-render.md): nowe migracje w engine muszą być idempotentne.
 
+### Zweryfikowany runbook aktualizacji (2026-07-14)
+
+1. wykonać `/home/ubuntu/backup-postgres.sh` i potwierdzić nowy plik w `/home/ubuntu/backups/`;
+2. potwierdzić czysty tracked worktree i właściwy commit `main` w `/home/ubuntu/sklepik`;
+3. `docker compose build web sidekiq`;
+4. `docker compose run --rm web sh -lc "bundle exec rails spree:install:migrations && bundle exec rails db:migrate"`;
+5. `docker compose up -d web sidekiq`;
+6. `docker compose restart nginx` — działający Nginx cache'uje IP poprzedniego kontenera `web` i bez restartu po recreate może zwracać 502;
+7. sprawdzić `docker compose ps`, logi web/sidekiq, schemat przez `rails runner` i odpowiedź HTTPS.
+
+Nie używać tu `railties:install:migrations`: w efemerycznym starterze kopiuje również migracje wszystkich zależności. 2026-07-14 skopiował migrację `acts_as_taggable_on`, która próbowała ponownie utworzyć istniejącą `spree_tags`; właściwy, wąski task `spree:install:migrations` wykonał migracje silnika poprawnie. Starter nie zachowuje skopiowanych plików po wyjściu jednorazowego kontenera, dlatego późniejszy boot nadal może ostrzegać o „missing migrations”, mimo że `schema_migrations` i struktury bazy są aktualne. Docelowa poprawka fundamentu: instalować migracje do obrazu albo utrzymywać trwałą aplikację `server/`, tak aby kod migracji i stan bazy były audytowalne razem.
+
 ## Następne kroki po utworzeniu VM
 
 Po utworzeniu instancji i potwierdzeniu publicznego IP:
