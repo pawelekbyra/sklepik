@@ -4,7 +4,171 @@ Kolejność prac dla całego systemu (oba repozytoria). Agent bierze zadania od 
 
 Jeśli któryś opis okaże się nieaktualny w chwili pracy — sprawdź kod, nie ufaj samemu opisowi.
 
-**Zewnętrzne blokery sprzedaży:** konfiguracja realnego operatora płatności, prawdziwe dane i treści prawne merchanta oraz produkcyjny test zamówienia. Panel pozwala już edytować dokumenty i checklista wymusza ich uzupełnienie, ale platforma nie może wymyślić za właściciela danych prawnych ani zaakceptować umowy z operatorem płatności.
+**Zewnętrzne blokery sprzedaży:** konfiguracja realnego operatora płatności, prawdziwe dane i treści prawne merchanta oraz produkcyjny test zamówienia. Panel pozwala już edytować dokumenty i checklista wymusza ich uzupełnienie, ale platforma nie może wymyślić za właściciela danych prawnych ani zaakceptować umowy z operatorem płatności. Po audytach 2026-07-14 obowiązują również wewnętrzne P0/P1 poniżej; zewnętrzna konfiguracja nie może ich przykryć.
+
+## Program napraw po audytach 2026-07-14 — aktywny blok przed dalszą roadmapą
+
+Piętnaście raportów obszarowych objęło 4 859/4 859 śledzonych ścieżek na baseline'ach backend/admin `9a4f693147` i storefront `0f83b94`. Zdeduplikowaną ocenę, mapowanie findings i kryteria zamknięcia prowadzi raport nadrzędny [`docs/audits/2026-07-14-00-stan-fundamentu-sklepika.md`](audits/2026-07-14-00-stan-fundamentu-sklepika.md). Raporty 01–15 pozostają dowodem szczegółowym; nie kopiujemy każdego findingu jako osobnego projektu i nie uznajemy statycznego audytu za test runtime.
+
+**Zasada wykonania:** poniższe etapy wyprzedzają otwarte F9/F11/F20/F22/F23/F28/F29 oraz nowe funkcje. Wyjątkiem są wyłącznie minimalne hotfixy i prace konieczne do wykonania testu zamykającego. Finding jest zamknięty dopiero po implementacji, teście wskazanym w raporcie i aktualizacji raportu nadrzędnego, `stan-projektu.md` oraz tego pliku.
+
+### Etap A — natychmiastowe ograniczenie ryzyka
+
+**A0. Zamrożenie niebezpiecznej ekspozycji** — oba repo + operacje — `[P0, natychmiast]`
+
+- publiczny signup pozostaje wyłączony dla szerokiego ruchu; do wspólnego backendu nie wpuszczamy niezależnych merchantów z realnymi klientami;
+- płatności online i automatyczny fulfillment pozostają wyłączone; dozwolone są wyłącznie kontrolowane sandboxy bez realnego capture;
+- zatrzymać automatyczną promocję produkcji, dopóki `INFRA-001` nie blokuje deployu przy czerwonym teście/buildzie; awaryjny hotfix wymaga jawnego operatora i zapisanego SHA;
+- zrotować znany credential produkcyjnego admina, unieważnić wszystkie refresh sessions, usunąć wartość z bieżących dokumentów/historii i wymusić jawne produkcyjne credentials seeda (`AUTH-001`);
+- zachować dowody i baseline'y audytu; nie wykonywać globalnego rename'u Spree ani destrukcyjnych migracji jako „porządków”.
+
+_Zamknięte gdy:_ stare hasło zwraca 401, sesje sprzed rotacji są nieważne, signup/payment gates są potwierdzone na produkcji, a celowo czerwony test i Docker build nie mogą uruchomić deployu.
+
+### Etap B — P0: granice danych, pieniędzy i release'u
+
+Zadania B1–B4 mogą iść równolegle w różnych obszarach, ale publiczny pilot z realnymi danymi wymaga wszystkich.
+
+**B1. Izolacja klientów i konta per sklep** — `sklepik` + `sklepikFront` — `[P0/P1; TENANT-001/002/003, AUTH-002/003]`
+
+- wdrożyć zatwierdzony model per-store customer identity/membership: tenantowy login, rejestracja, JWT, refresh, reset i profil; admin identity pozostaje globalna z rolami per store;
+- scope'ować Admin Customers, agregaty, adresy, cards, credits, groups, tags, exporty, nested resources i `OrdersController#resolve_user` przed authorization; `SuperUser` nie może omijać tenant scope;
+- zastąpić fail-open `Base.for_store` jawną klasyfikacją modeli globalnych/tenantowych; dodać constraints i reconciliation tam, gdzie to możliwe;
+- zbudować black-box E2E na prawdziwym Rails/Postgres dla dwóch sklepów/adminów/kluczy/klientów, bez mocków.
+
+_Zamknięte gdy:_ admin A nie może listować/czytać/modyfikować PII B ani utworzyć zamówienia dla klienta B; ten sam e-mail może mieć niezależne konto w A i B; token/reset/profile A nie działają w B; celowe usunięcie scope'u czerwieni CI.
+
+**B2. Bezpieczny kontrakt płatności i tenantowy webhook PSP** — `sklepik` + `sklepikFront` — `[P0; MONEY-001/002/003, ASYNC-001]`
+
+- usunąć `amount`/currency jako zaufane wejście Store API; gateway zawsze otrzymuje aktualne `order.amount_due` i currency pod lockiem;
+- generować URL webhooka z kanonicznego publicznego originu backendu, nie domeny storefrontu;
+- rozwiązywać tenant z nierozgadywalnego endpoint/payment-method bindingu, następnie weryfikować podpis sekretem tego sklepu;
+- przed `2xx` zapisywać tenantowy payment inbox z unikalnym `provider + event_id`; worker ma mieć retry, DLQ, idempotentny efekt i reconciliation;
+- usunąć fałszywy sukces frontendowy dla dowolnego 403/422 (`MONEY-004`).
+
+_Zamknięte gdy:_ dwa tenanty i wspólny host przechodzą signed webhook sandbox; manipulacja kwotą/walutą nie zmienia gateway amount; Redis/worker crash, duplikat i reorder kończą się dokładnie jedną płatnością i jednym ukończonym zamówieniem; nieprzetworzone zdarzenie jest widoczne i retryowalne.
+
+**B3. Trwały i powtarzalny artefakt bazy** — `sklepik` — `[P0/P1; DB-001/002/006]`
+
+- wersjonować host-app albo przypiąć ją do SHA; migracje i ich checksum manifest muszą być częścią immutable obrazu/release'u;
+- PostgreSQL `structure.sql` jako źródło prawdy, jeden idempotentny upgrade: migrate → wszystkie backfille tenantów → post-condition/orphan scan;
+- PR gate na produkcyjnej major PostgreSQL: fresh install, upgrade z poprzedniego release, double-run efemerycznego flow i schema diff;
+- wdrażać expand/backfill/contract z lock timeoutami i bez destrukcyjnego DDL bez dry-run/backup.
+
+_Zamknięte gdy:_ ten sam release artifact przechodzi fresh/upgrade/double-run bez powtórnego DDL, wszystkie wymagane ownership backfille mają zero niedozwolonych NULL-i, a produkcja raportuje ten sam migration manifest co CI.
+
+**B4. Build once, test, promote digest** — `sklepik` + infra — `[P0/P1; INFRA-001/002/003, SEC-004]`
+
+- wymagane testy na PR i chroniony `main`; build bez `continue-on-error`; jedna serializowana ścieżka deployu z environment approval;
+- przypiąć actions, starter i obrazy; budować raz w CI, generować SBOM/provenance/podpis i promować dokładny digest;
+- release: restore point → migracje/post-conditions → nowy stack → readiness przez publiczne HTTPS → cutover; zachować poprzedni digest i przećwiczyć rollback/forward-fix;
+- produkcja zapisuje commit, digest, starter SHA, migration manifest i contract version.
+
+_Zamknięte gdy:_ zepsuty test/build/migracja/start/HTTPS nie promuje wersji ani nie wyłącza poprzedniej; host uruchamia dokładnie digest z CI; dwa buildy commita mają ten sam manifest; rollback drill mieści się w zaakceptowanym MTTR.
+
+### Etap C — P1: bezpieczny pierwszy pilot sprzedażowy
+
+**C1. Auth i lifecycle sesji** — `sklepik` + oba UI — `[P1; AUTH-004..010, PANEL-001]`
+
+- digest refresh tokenów zamiast raw w DB, atomowa rotacja/token family i reuse detection;
+- zmiana/reset hasła unieważnia stare sesje, a owner/customer ma „wyloguj wszędzie”;
+- owner signup z potwierdzeniem e-mail, resend limitami i pełnym forgot/reset/recovery; niepotwierdzony owner nie uruchamia sklepu;
+- dla admin cookie poprawna granica SameSite/Origin/CSRF; MFA/step-up przed operacjami wysokiego ryzyka.
+
+_Zamknięte gdy:_ E2E signup→confirm→login→reset, równoległy refresh, revoke i browser CSRF przechodzą; DB/backup/log nie zawiera raw refresh; stare tokeny nie działają po recovery.
+
+**C2. Bezpieczne treści, pliki i storefront runtime** — oba repo — `[P1; SEC-001/002/003, FRONT-001]`
+
+- kanoniczna allowlistowa sanitizacja rich text w backendzie plus defence in depth w rendererze; CSP i nagłówki storefrontu;
+- produkcyjnie wyłączyć `dangerouslyAllowLocalIP`, ograniczyć hosty Image Optimizer i przetestować SSRF redirects/rebinding;
+- limity byte size/MIME/magic bytes/CSV, streaming i signed downloads zamiast pełnego blobu w RAM;
+- odróżniać prawdziwe empty/404 od config/401/timeout/5xx; outage daje kontrolowany błąd/alert, nie pusty sklep.
+
+_Zamknięte gdy:_ browser payload suite nie wykonuje JS, SSRF matrix jest odrzucana, pliki ponad limitem nie obciążają procesu, a pięć klas błędu API daje właściwe zachowanie i sygnał operacyjny.
+
+**C3. Realny adapter PSP i operacje money** — `sklepik` + panel/storefront — `[P1; MONEY-005/006/008/010]`
+
+- wybrać model Stripe Connect/oddzielne konta albo inny PSP i zapisać decyzję; klucze test/live, capabilities, webhook health i onboarding per tenant;
+- trwała atomowa idempotencja dla money endpoints i przekazanie klucza do providera;
+- command/outbox dla capture/void/refund z aktorem, powodem, statusem, audit trail i reconciliation;
+- readiness rozróżnia „metoda istnieje” od „gotowa do live orders”.
+
+_Zamknięte gdy:_ sandbox dwóch tenantów przechodzi onboarding, 3DS, webhook, capture, void, full/partial refund, timeout, duplikat i reconciliation bez sekretów w API/logach.
+
+**C4. Trwałe eventy, e-mail i rozdział kolejek** — `sklepik` + `sklepikFront` — `[P1; ASYNC-002..008]`
+
+- transactional outbox dla zdarzeń commerce; trwałe inbox/delivery states, poprawne retry 429/5xx/timeout, DLQ i idempotentni konsumenci;
+- produkcja bez skonfigurowanego mailera ma status `blocked_configuration`, nie developerski sukces; provider message ID i reconciliation;
+- respektować `notify_customer`; rozdzielić event faktu od komendy wiadomości;
+- kolejki co najmniej `critical`, `webhooks/email`, `default`, `bulk/provisioning/media`, z osobnym concurrency/SLO.
+
+_Zamknięte gdy:_ kill między DB commit a enqueue niczego nie gubi; transient webhook dochodzi po retry; 20 równoległych dostaw daje jeden mail; pięć zablokowanych provisioningów nie opóźnia payment inbox/resetu poza SLO.
+
+**C5. Minimalny operacyjny cykl zamówienia** — `sklepik` + oba UI — `[P1; ORDER-001..006, MONEY-008]`
+
+- jeden typowany command anulowania z aktorem, powodem, stockiem, void/refundem i zgodnym audit trail;
+- `fulfill` wyłącznie z poprawnego stanu; `canceled → resume → fulfill` ponownie rezerwuje/zdejmuje stock; polityka resume płatności;
+- pierwsza wersja zwrotu/reklamacji może być operator-assisted, ale musi łączyć sprawę, pozycje, przyjęcie towaru, decyzję, refund/replacement, komunikację i timeline;
+- concurrency constraints/idempotency dla receive/refund oraz tenant invariants dla order/return/stock/payment.
+
+_Zamknięte gdy:_ state/concurrency E2E paid/offline × unshipped/partial/shipped × cancel/return/refund daje dokładnie jeden efekt pieniędzy i stocku; klient widzi status sprawy, a merchant ma pełny actor/reason/gateway audit.
+
+**C6. Guided shipping/tax i poprawna gotowość właściciela** — `sklepik` — `[P1; PANEL-002/003/004/008]`
+
+- jeden prowadzony flow tworzy strefę z krajami, kategorię wysyłki, metodę, kalkulator i cenę;
+- kontrakt podatku jednoznacznie rozróżnia procent/ułamek i wymaga strefy; 23% round-tripuje poprawnie i nalicza się w koszyku;
+- readiness pokazuje error+retry i sprawdza provider live health, wymagane prawo, domenę/SSL, e-mail i test order; launch zapisuje snapshot i aktora;
+- required E2E ownera: verified signup → provision → relogin → produkt/media → shipping/tax → PSP sandbox → prawo → publish → launch → sandbox order.
+
+_Zamknięte gdy:_ świeży właściciel bez terminala przechodzi cały flow, readiness zmienia się wyłącznie po działającej konfiguracji, a kontrolowane 401/403/404/422/500/offline mają działanie naprawcze.
+
+**C7. DR, alerty i odtworzenie hosta** — infra + `sklepik` — `[P1; DR-001..005, INFRA-004..007]`
+
+- wersjonowane skrypty backup/restore, manifest/checksum, zewnętrzny heartbeat i alert wieku/rozmiaru/testu restore;
+- izolowany pełny restore DB + próbka originals + DB↔R2↔provider reconciliation; zatwierdzić RPO/RTO;
+- niezależna immutable/off-provider kopia DB i originals z osobnymi minimalnymi credentials;
+- idempotentny bootstrap/IaC czystej VM, trwały firewall, TLS, cron/timers, monitoring i secrets recovery; web bez tokenów provisioningowych.
+
+_Zamknięte gdy:_ utrata hosta i restore na czystej infrastrukturze przechodzą schema/tenant/money/media checks w RPO/RTO; przerwany backup/web/worker/DB/dysk/cert wysyła alert poza host; credential aplikacji nie usuwa backupu.
+
+**C8. Storefront jako bramka sprzedaży** — `sklepikFront` + kontrakty backendu — `[P1; FRONT-002..005]`
+
+- default-deny consent manager i Consent Mode; immutable snapshoty dokumentów oraz dowód akceptacji per customer/order/version/locale;
+- publiczny profil sprzedawcy, kontakt i wejście do obsługi posprzedażowej z danych Store API;
+- zastąpić stare `/us/en` E2E aktualnym PL golden path; Chromium/Firefox/WebKit mobile/desktop oraz canary po deployu;
+- contract/renderer runtime validation i pełna obsługa każdego publikowalnego pola.
+
+_Zamknięte gdy:_ przed zgodą nie ma opcjonalnego trackingu; zamówienie wskazuje dokładne wersje dokumentów; każdy nowy tenant ma publiczne dane i kontakt; aktualny checkout/order/mail przechodzi w wymaganym CI i canary.
+
+### Etap D — P1/P2: bezpieczny self-service i skalowanie
+
+**D1. Provisioning jako durable control plane** — `sklepik` — `[ARCH-003/004, ASYNC-006, INFRA-008, PANEL-007]`
+
+Persisted state per krok, idempotency/adoption/compensation, retry od niedomkniętego kroku, reconcile providerów, GitHub App, pełny manifest wymaganych env i routowalna strona status/retry. Zapis template SHA, contract/release version i wszystkich resource IDs. Chaos po każdym callu kończy się jednym repo/projektem/deployem albo kontrolowanym rollbackiem.
+
+**D2. Edytor revisions/preview/rollback** — oba repo — `[PANEL-005/006/009/015]`
+
+Immutable revisions, publish z expected revision, actor/diff, rollback jako nowa rewizja, dirty guard/autosave oraz podpisany tenantowy draft preview używający tego samego renderera. AI dopiero nad typed commands, dry-run, approval i auditem.
+
+**D3. Observability, capacity, scheduler i retencja** — infra + oba repo — `[ASYNC-009..011, DB-008/009, INFRA-005/009/010/014]`
+
+Zewnętrzne synthetic tests, centralne logi/metryki/tracing, queue age/DLQ, scheduler z missed-run alertem, SQL budgets, load/noisy-tenant tests, resource/log limits oraz zatwierdzona polityka PII/backup retention z tombstone replay.
+
+**D4. Kompletny kontrakt API i flota storefrontów** — oba repo — `[API-001..007, INFRA-011/012]`
+
+Niepuste, deterministyczne OpenAPI Store/Admin; generated types/Zod/SDK i clean-diff gate; consumer-driven contracts na realnym Rails dla obecnej i najstarszej wspieranej wersji; version/deprecation/capability policy oraz canary→cohort→rollback floty.
+
+### Etap E — publiczna warstwa Sklepika, bez globalnego rename'u
+
+Ten etap realizuje F29 równolegle z naprawami tylko tam, gdzie nie dotyka krytycznej ścieżki bez jej testów. Celem jest zatrzymanie nowych przecieków i migracja konsumentów, nie kosmetyczne przepisywanie silnika.
+
+1. **Baseline i zakaz wzrostu:** allowlista istniejących `@spree/*`, `Spree::*`, `X-Spree-*`, cookies/env/routes z ownerem; CI blokuje nowe wystąpienia poza engine i `adapters/spree`.
+2. **Własny kontrakt:** `@sklepik/contracts`, `@sklepik/store-client`, `@sklepik/admin-client`; domenowe IDs, errors, permission subjects, payment providers i wersjonowany event envelope. Początkowo fasady delegują do obecnych SDK.
+3. **Migracja konsumentów:** storefront katalog→konto→koszyk→checkout; dashboard permissions/metafields→hooks/forms→UI. Krytyczny checkout testuje stary/nowy adapter na tych samych fixtures.
+4. **Kompatybilny protokół:** `SKLEPIK_*` z fallbackiem do `SPREE_*`; `X-Sklepik-*` i `X-Spree-*` dual-read z błędem przy konflikcie; cookies dual-read/write-new bez utraty sesji/koszyka; `/api/webhooks/sklepik` i stary route do jednego verifiera/inboxu.
+5. **Pakiety i branding:** first-party używa `@sklepik/*`, stare pakiety są deprecated re-exportami z terminem i telemetrią. Spree znika z UI, onboardingów, publicznych błędów i runbooków operatora, ale pozostaje jawnie opisanym adapterem technicznym.
+6. **Silnik pozostaje stabilny:** namespace Ruby, gemy, 131 tabel `spree_*` i historyczne migracje nie są globalnie zmieniane. Ewentualna wymiana bounded contextu wymaga eksport/import, reconciliation pieniędzy i zamówień, dry-run, restore i rollback.
+
+_Warunek zakończenia:_ nowe funkcje nie importują silnika poza adapterem; stare i nowe klienty przechodzą contract/E2E; telemetria potwierdza uzgodnione okno zerowego użycia legacy przed usunięciem aliasu; istniejące sesje, koszyki, webhooki i storefronty nie tracą ciągłości.
 
 ## Faza 1 — Fundament techniczny
 
@@ -105,11 +269,11 @@ Znalezisko systemowego audytu (SYS-018): limity rozmiaru/typu uploadu, cleanup u
 _Zamknięte 2026-07-11:_ nowa preferencja `Spree::Config.max_image_upload_size` (domyślnie 10 MB) egzekwowana przez `active_storage_validations` (`size: { less_than: ->(_) { ... } }` — lambda, nie stała wartość, żeby zmiana preferencji per-request/testowo faktycznie działała) na `Spree::Asset#attachment`, `Spree::Store#logo`/`#mailer_logo`, `Spree::Taxon#image`/`#square_image`. Przy okazji naprawiona realna luka: `Spree::OptionValue#image` nie miał **żadnej** walidacji typu ani rozmiaru — teraz ma obie. Nowy rake task `spree:media:purge_unattached_blobs` (`ENV['OLDER_THAN_HOURS']`, domyślnie 24h) kolejkuje `ActiveStorage::PurgeJob` dla blobów bez właściciela starszych niż cutoff — chroni przed rasą z uploadem w trakcie zapisu formularza. Testy: rozmiar (5 modeli), content-type dla `OptionValue`, 8 przypadków dla rake taska (stary/świeży/przypisany blob, custom cutoff).
 _Otwarte:_ przegląd cache headers i bucket policy R2 — wymaga dostępu do konsoli Cloudflare (infra, nie kod) i/lub do `server/` (klon `spree-starter`, `.gitignored`, poza tym repo). Pre-generowanie wariantów zaraz po uploadzie w tle (worker Sidekiq już dostępny — F7, zamknięte 2026-07-09 — ale nic jeszcze nie enqueue'uje tego joba) — nadal do zrobienia. Uruchamianie `purge_unattached_blobs` na cronie (Sidekiq-cron albo system cron) — task istnieje, ale nic go jeszcze automatycznie nie wywołuje.
 
-**F21. Admin API/panel dla shipping methods/zones/tax rates** — `sklepik` — `[zamknięte 2026-07-10]`
-Money-critical luka z F13 prompt 2 (SYS-002): brak jakiejkolwiek panelowej/API konfiguracji metod wysyłki, kategorii wysyłki, stref i stawek podatkowych. Backend (hooki, kontrolery, serializery) ukończony w sesji wcześniejszej (F21 część 1). Frontend ukończony 2026-07-10: dwie nowe strony `settings/shipping-methods.tsx` i `settings/tax-rates.tsx` i `settings/zones.tsx` z pełną implementacją ResourceTable, create/edit sheets, react-hook-form, mapSpreeErrorsToForm error handling, dashboard-ui komponenty, proper loading/disabled states. Każda strona ma dedykowany hook (use-shipping-methods, use-tax-rates, use-zones) z CRUD operacjami.
+**F21. Admin API/panel dla shipping methods/zones/tax rates** — `sklepik` — `[backend i ekrany istnieją; owner flow ponownie otwarty po audycie 14]`
+Money-critical luka z F13 prompt 2 (SYS-002): wcześniej nie było panelowej/API konfiguracji metod wysyłki, kategorii wysyłki, stref i stawek podatkowych. Backend oraz trzy ekrany CRUD (`settings/shipping-methods.tsx`, `settings/tax-rates.tsx`, `settings/zones.tsx`) powstały 2026-07-10. Audyt 14 wykazał jednak, że obecność ekranów nie zamknęła zdolności biznesowej: formularz wysyłki nie tworzy wymaganej kategorii, członków strefy, kalkulatora i ceny, ma też niespójne wartości `display_on`; ekran podatku wysyła procent bez jednoznacznej konwersji i nie wiąże strefy. Domknięcie jest teraz w C6 (`PANEL-002/003`): guided flow oraz test koszyka dla polskiego adresu i VAT 23%.
 
-**F22. Pełny lifecycle zwrotów/reimbursements** — `sklepik` — `[otwarte, świadomie odłożone]`
-Znalezisko F13 prompt 4: działają tylko proste order-level refundy; brak Admin API/UI dla `reimbursement_types`, `refund_reasons`, `return_authorization_reasons`, `customer_returns`. **Świadomie odłożone** — właściciel zdecydował, że prosty zwrot na razie wystarcza.
+**F22. Pełny lifecycle zwrotów/reimbursements** — `sklepik` — `[otwarte; P1 przed samodzielną obsługą prawdziwych zamówień]`
+Znalezisko F13 prompt 4: działają tylko proste order-level refundy; brak Admin API/UI dla `reimbursement_types`, `refund_reasons`, `return_authorization_reasons`, `customer_returns`. Audyty 07–08 wykazały, że prosty refund nie zapewnia bezpiecznego cyklu: brakuje aktora i alokacji pozycji, trwałej idempotencji, przyjęcia zwrotu, stocku, reimbursementu, reklamacji, komunikacji i reconciliation. Minimalny operator-assisted workflow jest teraz C5; pełny self-service pozostaje dalszą częścią F22.
 
 **F23. Admin UI dla wishlist / cyfrowych pobrań / data feeds** — `sklepik` — `[otwarte, poza zakresem MVP]`
 Znaleziska F13 prompt 4 i 5: Store API ma `wishlists`, `digitals/:token` i `Spree::DataFeed`, ale zero Admin API/SDK/UI, więc merchant nie ma podglądu list życzeń, zarządzania plikami cyfrowymi ani konfiguracji feedów produktowych (Google Shopping/Meta Catalog). **Świadomie poza zakresem MVP** — sklep sprzedaje produkty fizyczne, nie planuje na razie reklam produktowych ani treści cyfrowych; wrócić do tego, jeśli to się zmieni.
@@ -126,9 +290,9 @@ Naprawiono sześć usterek w testach zaraz po zmergowaniu F15-F24:
 5. **Rate limiting (F16) w środowisku testowym** — `Rack::Attack.enabled = false if Rails.env.test?` w initializerze. Podejrzewane jako przyczyna zawieszki E2E, ostatecznie **nie było** (patrz #6), ale zmiana jest słuszna i nieszkodliwa: rate limiting to zabezpieczenie produkcyjne, w teście nie ma prawa dławić suite (żaden spec nie asertuje throttlingu). Zweryfikowane w źródle gemu: `return @app.call(env) if !enabled` → pełny pass-through.
 6. **Prawdziwa przyczyna zawieszki E2E (3,5h) — polski locale vs angielskie selektory**: E2E był czerwony **także na `main`** (nie regresja PR #25), złamany przez commit `30d2455 "…Polish language"`, który ustawił domyślny język panelu na polski (`DEFAULT_ADMIN_LOCALE = 'pl'` w `dashboard-core/src/lib/i18n.ts`, `lng: readStoredLocale()`). Świeży browser w E2E nie ma zapisanego języka → panel startuje po polsku → label to `E-mail`, tytuł `Witaj ponownie`. Selektory specków są angielskie: `getByLabel(/email/i)` NIE trafia w `E-mail` (myślnik rozbija podłańcuch `email`), `getByText(/welcome back/i)` NIE trafia w `Witaj ponownie`. Efekt: helper `login()` timeoutuje 30s na każdym ze 135 testów × 3 próby retry = ~3,5h czystych timeoutów. Diagnoza z realnego logu completed-failure (nie z domysłów): wszystkie faile na `waiting for getByLabel(/email/i)` w `helpers.ts:74`. Poprawka (zero zmian w 135 speckach): global-setup zapisuje plik `storageState` z `localStorage['spree-admin-locale'] = 'en'` dla origin Vite, a `playwright.config.ts` wskazuje go w `use.storageState` — panel startuje po angielsku dla każdego kontekstu. Klucz bez auto-markera liczy się jako „genuine choice", więc przetrwa login i strony authenticated (reconcile robi no-op: `if (stored != null && auto == null) return`). Dodatkowo `timeout-minutes: 30` na jobie `dashboard-e2e` w `packages.yml` — przyszła zawieszka pada po ~30 min zamiast po 6h (domyślny limit GitHuba).
 
-### P3 — siatka bezpieczeństwa
+### P3 — historyczna siatka bezpieczeństwa (zakres podniesiony przez audyty)
 
-**F9. Testy e2e łańcucha rynek → waluta → publikacja → cache** — oba repo — `[otwarte]`
+**F9. Testy e2e łańcucha rynek → waluta → publikacja → cache** — oba repo — `[otwarte; scenariusz zachowany, ale krytyczne E2E są teraz B1/B2/C6/C8]`
 Minimalny pakiet: (1) produkt aktywny + publikacja + cena PLN → widoczny w Store API; (2) usunięcie publikacji/ceny → admin pokazuje "niegotowy" (F3), nie cichy sukces; (3) `24,99`/`24.99` → w bazie zawsze `24.99` (F2); (4) edycja ceny → webhook → storefront pokazuje nową wartość bez TTL (F4); (5) zmiana domyślnego locale/currency rynku nie ukrywa produktów bez jawnego komunikatu.
 _Zamknięte gdy:_ te scenariusze przechodzą w CI przed merge do main.
 
@@ -162,25 +326,26 @@ Dynamiczne rozpoznawanie sklepu po domenie w storefroncie to Faza 2, samoobsług
 
 ## Faza 2 — Store Factory: od rejestracji do bezpiecznej publikacji
 
-**F26. Edytor storefrontu MVP** — oba repo — `[wdrożone produkcyjnie 2026-07-14; zalogowane owner E2E pozostaje]`
+**F26. Edytor storefrontu MVP** — oba repo — `[MVP wdrożone 2026-07-14; revisions/publish safety/preview/E2E otwarte w D2]`
 
 Backend przechowuje osobne wersje draft/published walidowanego dokumentu strony, chroni zapis optimistic lockingiem i udostępnia publicznie wyłącznie snapshot. Panel właściciela edytuje, porządkuje i publikuje sekcje hero/product grid z live preview. Wspólny storefront renderuje dokument, a przed pierwszą publikacją zachowuje dotychczasowy widok kakao. Następne sekcje, preview URL, motywy i generowanie AI mają rozszerzać ten sam wersjonowany kontrakt — bez dowolnego HTML/JS.
 
-**F27. Launch readiness i dokumenty prawne** — `sklepik` — `[wdrożone produkcyjnie 2026-07-14; zalogowane owner E2E pozostaje]`
+**F27. Launch readiness i dokumenty prawne** — `sklepik` — `[pierwsza wersja wdrożona 2026-07-14; semantyczna readiness i dowody prawne otwarte w C6/C8]`
 
 Nowy sklep zaczyna jako `draft`. Dashboard pokazuje checklistę danych firmy, produktu, płatności, wysyłki, dokumentów i opublikowanej strony. Admin ma edytor polityk z jawnym zastrzeżeniem, że nie są poradą prawną. Jawne uruchomienie przełącza sklep na `live` tylko po spełnieniu kontroli; backend blokuje tworzenie płatności, sesji i finalizację checkoutu wcześniej. Stare sklepy bez wartości kolumny pozostają aktywne.
 
 **F28. Pierwsze płatne wdrożenia** — produkt + operacje — `[otwarte]`
 
+- nie uruchamiać prawdziwych klientów/płatności przed zamknięciem Etapów A–C i raportu nadrzędnego; rozmowy, konfiguracja demo i sandbox pilots mogą trwać bez realnych PII/capture;
 - wybrać pierwszy segment na podstawie `docs/research/`;
 - przeprowadzić 20 rozmów bez udawania wyników i zdobyć 5 płatnych pilotów;
 - zmierzyć czas pracy człowieka, aktywację i pierwsze prawdziwe zamówienie;
 - skonfigurować płatności, prawdziwe treści, wysyłkę i domenę per pilot;
 - zamieniać powtarzalne działania operatora w funkcje produktu.
 
-**F29. Fundament Sklepika i uniezależnienie od Spree** — oba repo — `[otwarte; następna inicjatywa po F26–F27]`
+**F29. Fundament Sklepika i uniezależnienie od Spree** — oba repo — `[otwarte; realizowane według Etapu E programu poaudytowego]`
 
-Celem nie jest kosmetyczny globalny rename, tylko doprowadzenie do sytuacji, w której panel, storefronty, agenci i nowe moduły posługują się wyłącznie językiem domenowym Sklepika. Spree pozostaje przejściowo wymiennym silnikiem commerce za kontrolowaną granicą. Program obejmuje:
+Celem nie jest kosmetyczny globalny rename, tylko doprowadzenie do sytuacji, w której panel, storefronty, agenci i nowe moduły posługują się wyłącznie językiem domenowym Sklepika. Spree pozostaje przejściowo silnikiem commerce za kontrolowaną granicą; dziś ta granica jeszcze nie istnieje w pełni. Audyt 03 policzył m.in. 82 bezpośrednie importy `@spree/sdk` w źródłach storefrontu, 12 nazw publicznych nagłówków oraz 131 tabel `spree_*`. Program obejmuje:
 
 - zamrożenie audytowanego commita po wdrożeniu F26–F27;
 - klasyfikację każdego modułu i pliku jako `KEEP`, `HARDEN`, `REFACTOR`, `REPLACE`, `REMOVE`, `ISOLATE` albo `UNKNOWN`;
