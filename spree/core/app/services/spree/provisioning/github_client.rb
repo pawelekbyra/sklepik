@@ -55,6 +55,13 @@ module Spree
         false
       end
 
+      # Numeric GitHub repo ID, needed by VercelClient#trigger_deployment's
+      # gitSource (which identifies the repo by ID, not by owner/name).
+      def fetch_repo_id(full_name)
+        response = request(:get, "/repos/#{full_name}")
+        JSON.parse(response.body)['id']
+      end
+
       private
 
       def request(method, path, body = nil)

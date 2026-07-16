@@ -9,11 +9,20 @@ module Spree
     # Vercel API (session 2026-07-13, docs/plans/store-factory.md Etap 2) —
     # a project was created and immediately deleted to confirm the exact
     # request/response shape below. `set_env` uses the documented endpoint
-    # but was not exercised live. The `gitRepository` linkage in
-    # `create_project` (this is what's untested end-to-end): whether a bare
-    # `{"type":"github","repo":"owner/name"}` auto-resolves against the
-    # account's existing GitHub App installation, or 4xxs and needs a
-    # `gitCredentialId` — see the client note in ProvisionStore.
+    # but was not exercised live.
+    #
+    # 2026-07-16 incident (first real /signup attempt, store "hejkarty"):
+    # the bare `gitRepository: {"type":"github","repo":"owner/name"}` DOES
+    # auto-resolve against the account's GitHub App installation — no
+    # `gitCredentialId` needed, confirmed by real deployments building from
+    # later pushes. The actual bug was different: the repo's one commit
+    # (from GitHub's generate-from-template) exists *before* this project
+    # does, so nothing was ever going to auto-deploy it — `create_project`
+    # only links *future* pushes. `wait_for_deployment` polled for 5 minutes
+    # against a project that had no deployment to find, timing out on a
+    # deployment that was never coming. `trigger_deployment` below closes
+    # that gap by explicitly building the current ref instead of waiting on
+    # a push event.
     class VercelClient
       API_BASE = 'https://api.vercel.com'.freeze
       TIMEOUT = 30
@@ -52,15 +61,33 @@ module Spree
         )
       end
 
-      # Latest deployment URL for the project's production target, once
-      # Vercel's GitHub integration has auto-deployed the pushed branch.
-      # Returns nil while no deployment exists yet — callers poll.
-      def latest_deployment_url(project_id)
-        response = request(:get, "/v6/deployments?projectId=#{project_id}&target=production&limit=1")
-        deployment = JSON.parse(response.body)['deployments']&.first
-        return nil unless deployment
+      # Explicitly builds `ref` instead of waiting for a push event — the
+      # repo's initial commit predates the project (see class comment), so
+      # without this call there is nothing for Vercel to ever auto-deploy.
+      # @return [Hash] parsed deployment response, includes "id"/"url"/"readyState"
+      def trigger_deployment(project_id:, repo_id:, name:, ref: 'main')
+        response = request(
+          :post,
+          '/v13/deployments',
+          {
+            name: name,
+            project: project_id,
+            target: 'production',
+            gitSource: { type: 'github', repoId: repo_id, ref: ref }
+          }
+        )
+        JSON.parse(response.body)
+      end
 
-        deployment['readyState'] == 'READY' ? "https://#{deployment['url']}" : nil
+      # Most recent deployment for the project's production target, in
+      # whatever state it's actually in — nil only when none exists yet.
+      # Callers need the raw state (not just a URL) to tell "still
+      # building" apart from "errored", which is exactly what got missed
+      # before: a build that failed at minute 1 was indistinguishable from
+      # one still running, so polling burned the full timeout either way.
+      def latest_deployment(project_id)
+        response = request(:get, "/v6/deployments?projectId=#{project_id}&target=production&limit=1")
+        JSON.parse(response.body)['deployments']&.first
       end
 
       private

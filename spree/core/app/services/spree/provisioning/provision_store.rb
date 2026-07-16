@@ -31,7 +31,7 @@ module Spree
         repo_full_name = create_repository
         project = create_vercel_project(repo_full_name)
         configure_environment(project['id'])
-        deployment_url = wait_for_deployment(project['id'])
+        deployment_url = wait_for_deployment(project['id'], repo_full_name)
         activate!(repo_full_name, project['id'], deployment_url)
       rescue GithubClient::Error, VercelClient::Error, Timeout::Error, URI::InvalidURIError,
              ActiveRecord::RecordInvalid => e
@@ -48,6 +48,9 @@ module Spree
           new_repo_name: repo_name
         )
         wait_for_repository(full_name)
+        # Needed later to explicitly trigger the first deployment — see
+        # VercelClient#trigger_deployment for why that's necessary at all.
+        @repo_id = @github.fetch_repo_id(full_name)
         @run.advance!('creating_repository', step_status: 'done')
         full_name
       end
@@ -103,13 +106,28 @@ module Spree
         key.token
       end
 
-      def wait_for_deployment(project_id)
+      def wait_for_deployment(project_id, repo_full_name)
         @run.advance!('deploying', step_status: 'in_progress')
+
+        @vercel.trigger_deployment(
+          project_id: project_id,
+          repo_id: @repo_id,
+          name: repo_full_name.split('/').last
+        )
 
         deployment_url = nil
         30.times do
-          deployment_url = @vercel.latest_deployment_url(project_id)
-          break if deployment_url
+          deployment = @vercel.latest_deployment(project_id)
+          ready_state = deployment && deployment['readyState']
+
+          if ready_state == 'READY'
+            deployment_url = "https://#{deployment['url']}"
+            break
+          elsif %w[ERROR CANCELED].include?(ready_state)
+            raise VercelClient::Error,
+                  "Vercel deployment #{deployment['id']} failed to build (state: #{ready_state}): " \
+                  "#{deployment['errorMessage'].presence || 'Vercel did not return an error message — check the build logs in the dashboard'}"
+          end
 
           sleep 10
         end
