@@ -1,76 +1,85 @@
-# System kompozycji storefrontu (tryb "managed" w drabinie izolacji Store Factory)
+# System kompozycji storefrontu — Fabryka Sklepów (model docelowy)
 
-**Status:** Draft — wizja koncepcyjna, nierozpoczęta. **Zawężony zakres (2026-07-13, patrz nota niżej).**
-**Target:** `sklepikFront` (storefront), `sklepik` (backend, jako źródło danych konfiguracji)
+**Status:** Active — model docelowy, decyzja właściciela z 2026-07-17 (patrz nota niżej). Zastępuje `store-factory.md` jako cel Fazy 3.
+**Target:** `sklepikFront` (ewoluuje w współdzielony, wielosklepowy storefront + panel `/admin`), `sklepik` (backend, źródło danych konfiguracji), `edytor-sklepu` (dostarcza silnik edytora jako pakiety `@sklepik/*`)
 **Depends on:** [`multi-store-support.md`](multi-store-support.md) — Faza 1 (zaimplementowana), rozszerza/precyzuje Fazę 2 tamtego planu
-**Superseded by (jako model docelowy niezależności):** [`store-factory.md`](store-factory.md) — patrz nota niżej
-**Author:** właściciel + agent (sesja 2026-07-13)
-**Last updated:** 2026-07-13
+**Supersedes:** [`store-factory.md`](store-factory.md) — patrz nota niżej i nota w tamtym dokumencie
+**Author:** właściciel + agent (sesja 2026-07-13, zmiana decyzji 2026-07-17 po dziewięciu niezależnych research-passach)
+**Last updated:** 2026-07-17
 
-## Nota o zmianie decyzji (2026-07-13)
+## Nota o zmianie decyzji (2026-07-17)
 
-Ten dokument pierwotnie odpowiadał na pytanie "czy pełna niezależność wizualna wymaga forka repo?" wnioskiem "nie — buduj warstwę kompozycji zamiast forkować". **Właściciel zmienił tę decyzję tego samego dnia** na korzyść modelu opisanego w [`store-factory.md`](store-factory.md): repozytorium + projekt Vercel per sklep jako **domyślny, docelowy model niezależności**, nie jako wyjątek premium.
+Ten dokument pierwotnie proponował dokładnie ten model (jeden storefront, layout jako dane), został **odwrócony 2026-07-13** na rzecz `store-factory.md` (repo + projekt Vercel per sklep), a teraz **właściciel odwrócił tę decyzję z powrotem, świadomie i definitywnie** ("chcę z tego pomysłu [repo per sklep] zrezygnować, to była zła decyzja i chcę ją uciąć"). Różnica względem 2026-07-13: tym razem decyzja jest poparta dziewięcioma niezależnymi research-passami (branżowe wzorce multi-tenant, page builderów, fleet-update, auth, CI/CD, headless commerce, personalizacji i bezpiecznego custom code — pełne ustalenia w historii sesji 2026-07-17, kluczowe wnioski wplecione niżej), nie tylko intuicją.
 
-Ten dokument **nie jest usuwany** — jego zakres zawęża się do opisu ewentualnego trybu `managed` z drabiny izolacji Store Factory (opcja szybkiego, taniego uruchomienia sklepu bez własnego repo, dla klientów, którym niezależność kodu nie jest potrzebna). Szczegóły projektowe niżej (model danych sekcji, design tokens, draft/publish) zostają jako materiał referencyjny, gdyby tryb `managed` miał kiedyś powstać — ale **nie są już celem głównym** i nie powinny być traktowane jako plan do realizacji bez osobnej decyzji.
+Kluczowe ustalenie badawcze uzasadniające powrót: branżowe wzorce (Shopify, Vercel Platforms Starter Kit, duże wdrożenia WordPress) **domyślnie renderują wielu najemców z jednego wspólnego runtime'u** — repo-per-tenant jest kosztownym wyjątkiem (case study Spotify: bez dedykowanego narzędzia propagacja jednej zmiany na 70% repo we flocie zajmowała 6+ miesięcy), nie standardem. Obawa z 2026-07-13 ("page builder zawsze ogranicza do zestawu komponentów przewidzianych przez platformę") jest realna, ale rozwiązywalna głębią systemu (patrz sekcja "Personalizacja" niżej) — Shopify Online Store 2.0 dowodzi, że współdzielony runtime może dać bardzo głęboką personalizację (theme/section/block settings, Custom Liquid, App Blocks, Metaobjects) bez oddawania kodu.
 
-## Summary (oryginalny kontekst, historyczny)
+**Ważna dobra wiadomość:** `edytor-sklepu` (osobne repo, budowane 2026-06-29 → 2026-07-17 jako spike) już implementuje dużą część tego, co ten dokument opisywał wizyjnie w 2026-07-13 — realny rejestr komponentów, drzewo sekcji jako dane (Zod schema), edytor z undo/redo, tryb edit/live. To nie jest praca od zera — to gotowy silnik czekający na osadzenie. Szczegóły integracji: `edytor-sklepu/docs/ROADMAPA.md` i `ARCHITEKTURA.md` w tamtym repo.
 
-Pytanie, które zainicjowało ten plan: jeśli sklep ma mieć **pełną niezależność wizualną** (własny layout, własny styl, nie tylko kolor/logo) i nie ma ograniczeń budżetowych na inżynierię, to jakie jest najlepsze rozwiązanie — czy to fork repozytorium per sklep?
+`store-factory.md` **nie jest usuwany** — zostaje jako opis odrzuconej ścieżki i materiał referencyjny (część jego elementów, np. drabina izolacji `managed`/`dedicated_data`/`dedicated_stack` dla enterprise, może kiedyś wrócić jako opcjonalny, płatny tier ponad tym modelem, nie jako model domyślny).
 
-Odpowiedź udzielona wtedy: **nie** — fork repo per sklep to tani kompromis, nie premium rozwiązanie; lepiej budować warstwę kompozycji (system komponentów + drzewo strony jako dane, renderowane przez jedną wspólną aplikację). **Ta odpowiedź została odwrócona** — patrz nota wyżej i [`store-factory.md`](store-factory.md) dla aktualnego uzasadnienia (prawdziwa niezależność — kod, deployment, własność, transfer do klienta — wymaga osobnej aplikacji, nie tylko danych renderowanych przez wspólny kod).
+## Summary
 
-Poniższe sekcje (Key Decisions, Design Details, Migration Path) opisują wizję sprzed zmiany decyzji i są zachowane jako materiał referencyjny dla trybu `managed`, nie jako aktywny plan.
+Jeden współdzielony storefront (dziś `sklepikFront`, ewoluujący w miejscu, nie przepisywany od zera), obsługujący wielu najemców przez routing po domenie/`store_id` (jak Vercel Platforms Starter Kit). Layout i styl sklepu to dane (drzewo sekcji + design tokens), nie kod — renderowane przez rejestr komponentów współdzielony przez wszystkie sklepy. Właściciel sklepu edytuje przez chronioną trasę `/admin` tej samej aplikacji (silnik dostarcza `edytor-sklepu`). Personalizacja jest stopniowana i realna (nie "te same cegiełki") — patrz sekcja niżej. Custom code jest możliwy, ale bezpieczny z definicji (bez pełnego sandboxa server-side na start).
 
 ## Key Decisions (do not deviate without discussion)
 
-- **Jeden storefront, jedna baza kodu, wszystkie sklepy.** Żadnych forków repozytorium per sklep jako domyślnego mechanizmu. Fork/osobna apka to wyjątek premium (patrz niżej), nie ścieżka standardowa.
-- **Layout i styl sklepu to dane, nie kod.** Strona sklepu to drzewo JSON (sekcje + propsy), przechowywane w backendzie, renderowane przez rejestr komponentów React współdzielony przez wszystkie sklepy. Nowy komponent w rejestrze staje się dostępny dla wszystkich sklepów natychmiast.
-- **Design tokens per sklep, nie tylko kolor/logo.** Pełna skala: typografia, spacing, promienie zaokrągleń, krzywe animacji, override'y per-komponent. To realna głębia customizacji, nie kosmetyka.
-- **Draft/publish z wersjonowaniem.** Edycja layoutu na żywym podglądzie (draft), publikacja jawnym krokiem, historia wersji z możliwością rollbacku — layout sklepu nie jest edytowany "na produkcji" bez siatki bezpieczeństwa.
-- **Custom code jako sandboxed escape hatch, nie jako domyślna ścieżka.** Rzadki przypadek sklepu potrzebującego faktycznie unikalnej logiki (nie tylko wyglądu) dostaje izolowany, poddany review komponent/plugin ładowany per-sklep — rozszerza system, nie duplikuje całej aplikacji.
-- **Jeden deployment, cache per-tenant na edge'u.** Skalowanie do wielu sklepów przez ISR/edge cache kluczowany `store_id`+`path`, nie przez mnożenie deploymentów Vercel.
+- **Jeden storefront, jedna baza kodu, wszystkie sklepy.** Żadnych repozytoriów/deploymentów per sklep jako domyślnego mechanizmu. `sklepikFront` ewoluuje w to repo w miejscu — nie jest przepisywany od zera (zachowuje pracę produkcyjną: Oracle VPS, SSL, idempotencja webhooków).
+- **Nowy sklep = rekord + domena, nie repo + deployment.** Store Factory (patrz `store-factory.md`, historyczny) się kurczy: nowy sklep to wiersz w bazie (`store_id`) + jedno wywołanie Vercel Domains API podpinające domenę klienta do jednego wspólnego deploymentu. `GithubClient`/`VercelClient`/`ProvisioningRun` z `store-factory.md` stają się legacy — zostają w kodzie jako nieużywana ścieżka do czasu uprzątnięcia (patrz "Legacy" w `stan-projektu.md`), nie rozwijać dalej.
+- **Layout i styl sklepu to dane, nie kod.** Strona sklepu to drzewo sekcji (schema Zod, już zaprojektowana w `edytor-sklepu/packages/schema`), przechowywane w bazie `sklepik` scoped po `store_id`, renderowane przez rejestr komponentów (`edytor-sklepu/packages/component-library` + `renderer`) współdzielony przez wszystkie sklepy. Nowy komponent w rejestrze staje się dostępny dla wszystkich sklepów natychmiast.
+- **`/admin` to chroniona sekcja jednej aplikacji, nie osobny deployment.** Auth przez zwykłą sesję/RBAC przeciw już istniejącemu `RoleUser`+`store_id` w `sklepik` — bez federacyjnego JWT/JWKS między niezależnymi deploymentami (to było potrzebne tylko w odrzuconym modelu repo-per-sklep).
+- **Personalizacja jest stopniowana, budowana od najtańszego kroku (patrz sekcja niżej):** design tokens → warianty stylu sekcji → jeden poziom zagnieżdżenia (kontenery) → (odłożone) pełny swobodny grid.
+- **Custom code bezpieczny z definicji, nie przez zaufanie.** JSON-Logic dla warunkowej widoczności/logiki (zero ryzyka wykonania kodu) + custom HTML/CSS/JS w `<iframe sandbox="allow-scripts">` ze ścisłym CSP dla realnych widgetów klienta (kod klienta wykonuje się wyłącznie w przeglądarce odwiedzającego, nigdy na współdzielonym serwerze). Serwerowy sandbox (QuickJS-WASM, docelowo ew. Shopify-Functions-style WASM) tylko jeśli realna potrzeba to uzasadni — **nigdy `vm2`** (deprecated, świeże krytyczne CVE).
+- **Dokumenty stron w bazie `sklepik`, scoped po `store_id`.** `edytor-sklepu`'s `GitHubPageRepository` (git-based CMS, budowany pod odrzucony model repo-per-sklep) zostaje w kodzie jako opcja/materiał referencyjny, ale główną ścieżką jest nowy `PageRepository` oparty o bazę.
 
 ## Design Details
 
 ### Backend (`sklepik`)
 
-1. **Model strony/sekcji** — nowa struktura danych spinająca sklep z drzewem sekcji: `Spree::Store has_many :pages`, `Page has_many :sections` (albo pojedyncza kolumna `jsonb` z całym drzewem, do rozstrzygnięcia — trade-off: normalizacja + query'owalność vs prostota jednego blobu). Każda sekcja: `component_key` (wskazuje do rejestru po stronie frontu) + `props` (jsonb) + `position` (`acts_as_list`, drag-and-drop w edytorze jak reszta panelu).
-2. **Design tokens** — rozszerzenie istniejących `Store` preferences (już ma `preferred_*` dla części ustawień) o pełny zestaw tokenów: paleta, typografia, spacing, radius, itd. Prawdopodobnie osobny model `Spree::StoreTheme` zamiast dorzucania kolejnych `preference`, żeby nie rozdymać `Store`.
-3. **Draft/publish** — `Page` (albo cały theme) ma `draft_data`/`published_data` (dwa stany tego samego drzewa) + `published_at`. Publikacja to atomowa operacja kopiująca draft → published. Historia wersji: `PaperTrail`/`acts_as_versioned`-podobny mechanizm albo prostszy log zmian, do rozstrzygnięcia przy projektowaniu szczegółowym.
-4. **Custom code / plugin sandbox** — poza zakresem szczegółowego projektu w tym dokumencie; wymaga osobnej decyzji o modelu bezpieczeństwa (co sandboxed komponent może/nie może robić — network, dostęp do danych innych sklepów, itd.), prawdopodobnie osobny plan gdy realnie zaczniemy.
+1. **`PageRepository` oparty o bazę, scoped po `store_id`.** `edytor-sklepu` już ma interfejs `PageRepository` (dziś: `SQLitePageRepository`/`FilePageRepository`/`GitHubPageRepository` w `packages/persistence`) — dodać `SklepikPageRepository` (nazwa robocza, konsumuje Admin/Store API tego repo) jako nową implementację tego samego interfejsu, nie nowy model mentalny. Drzewo sekcji: schema Zod z `edytor-sklepu/packages/schema` (`Page`/`Section`/`Block`) jako źródło typów, kolumna `jsonb` per stronę + `store_id`, bez normalizacji na start (mniej migracji, wystarczające query'owanie — strona jest zawsze pobierana w całości).
+2. **Design tokens** — osobny model `Spree::StoreTheme` (nie dorzucanie kolejnych `preference` do `Store`, żeby go nie rozdymać) — kolory, typografia, spacing, radius, cienie. Format zgodny z W3C Design Tokens Community Group (stabilna specyfikacja 2025.10), kompilowany do CSS custom properties per `store_id` (wzorzec Style Dictionary — multi-brand theming z jednego drzewa tokenów + nadpisania per sklep).
+3. **Draft/publish** — `Page` ma `draft_data`/`published_data` + `published_at`; publikacja to atomowa operacja kopiująca draft → published. Uzasadnienie badawcze: TinaCMS i Decap CMS boleśnie się nauczyły, że brak tego rozdziału jest głównym źródłem skarg nietechnicznych właścicieli sklepów — jawny stan "zapisz" (draft) vs "opublikuj" jest wymagany, nie opcjonalny.
+4. **Custom code — bez sandboxa server-side na start.** JSON-Logic (interpretacja danych, zero wykonania kodu) dla warunkowej logiki jako pole na sekcji/bloku. Realny custom kod (HTML/CSS/JS) trafia do `<iframe sandbox="allow-scripts">` renderowanego przez frontend — nigdy nie dotyka backendu ani współdzielonego serwera Next.js. Jeśli w przyszłości pojawi się potrzeba logiki server-side (np. własne reguły cenowe), rozważyć QuickJS-WASM (czysty WASM, działa w Node runtime Vercela) jako tani krok pośredni, zanim inwestuje się w coś jak Shopify Functions (Wasmtime).
 
 ### Frontend (`sklepikFront`)
 
-1. **Rejestr komponentów** — mapa `component_key → React component`, każdy komponent przyjmuje `props` z drzewa strony + `theme` (design tokens bieżącego sklepu) z kontekstu. Biblioteka startowa: hero, siatka produktów, karuzela, tekst+obraz, CTA, itd. — rozbudowywana z czasem, każdy nowy komponent dostępny dla wszystkich sklepów.
-2. **Renderer strony** — server component iterujący po drzewie sekcji sklepu, renderujący każdą przez rejestr; brakujący `component_key` w rejestrze → czytelny fallback, nie crash całej strony.
-3. **Routing po domenie (z Fazy 2 `multi-store-support.md`)** — warunek wstępny tego planu. Storefront musi już rozpoznawać sklep po `Host` żądania i dociągać jego config dynamicznie, zanim ma sens dociąganie do tego configu również drzewa strony/theme.
-4. **Edytor wizualny** — osobna, duża część projektu: podgląd na żywo, drag-and-drop sekcji, panel edycji propsów/tokenów. Prawdopodobnie nowa sekcja panelu admina (`packages/dashboard`) albo dedykowany edytor osadzony w storefroncie (jak Shopify theme editor) — do rozstrzygnięcia.
+1. **Middleware rozpoznawania tenanta** — rozwiązuje `store_id` po `Host` żądania (rozszerza to, co Faza 2 `multi-store-support.md` już zakładała), analogicznie do Vercel Platforms Starter Kit.
+2. **Rejestr komponentów i renderer — już istnieją, nie budować od zera.** `edytor-sklepu/packages/component-library` (7/14 sekcji treści) + `packages/renderer` implementują dokładnie to, co ta sekcja opisywała jako "do zbudowania" w wersji z 2026-07-13. Zadanie integracyjne: zamontować je jako zależności w `sklepikFront`, nie przepisywać. Sekcje commerce (`product_grid`, `category_grid`) są już zaprojektowane jako sloty rejestru wypełniane przez hosta realnymi danymi (Store API) — wzorzec potwierdzony badawczo jako zgodny z Shopify Online Store 2.0 (dynamic sources: referencja ID, nigdy kopia danych).
+3. **`/admin` jako chroniona sekcja tej samej aplikacji.** Silnik edytora (`apps/editor` z `edytor-sklepu`, undo/redo, panel właściwości generowany z Zod) montowany jako trasa, nie osobny deployment. Auth: zwykła sesja przeciw `RoleUser`+`store_id` w `sklepik` (nie federacyjny JWT/JWKS — to było potrzebne tylko przy niezależnych deploymentach, które odrzuciliśmy).
+4. **Personalizacja — kolejność inwestycji (poparta badaniem porównawczym Webflow/Framer/Wix Studio/Squarespace/Shopify):**
+   - **Etap 1 (tanie, dni-tygodnie):** design tokens jako CSS custom properties per `store_id` — największy zwrot za najmniejszy koszt, samo w sobie daje wrażenie "innej marki".
+   - **Etap 2 (tanie-średnie, 2-4 tygodnie):** pole `variant` na sekcji (3-5 układów na typ: hero „split"/„centered"/„overlay") + drugi wymiar pól (`image_position`, `background`). To bezpośrednio rozbija problem "tych samych cegiełek" (wzorzec Shopify Theme Blocks / Webflow Component Style Variants).
+   - **Etap 3 (średnie, opcjonalnie):** jeden poziom zagnieżdżenia — blok „kolumny" jako kontener na 2-4 dowolne bloki, płaska lista z `parent_id` (nie pełne drzewo).
+   - **Odłożone (drogie):** pełny swobodny grid/edytor jak Wix Studio/Framer — dopiero gdy Etapy 1-3 przestaną wystarczać.
 
 ## Migration Path
 
-Nie rozpisane szczegółowo — to wizja docelowa, nie plan sprintu. Zgrubny szkic kolejności (każdy krok wymaga osobnej decyzji, żeby zacząć realizację):
-
-1. Faza 2 z `multi-store-support.md` (routing po domenie) jako fundament — bez tego nie ma sensu dociągać configu strony dynamicznie.
-2. Design tokens (krok najmniejszego ryzyka, rozszerza istniejące `Store` preferences) — daje realną wartość (głęboka customizacja brandingu) zanim zacznie się budować cały page builder.
-3. Rejestr komponentów + statyczne drzewo strony (bez edytora — layout ustawiany przez dewelopera/wsparcie, nie samoobsługowo) — sprawdza architekturę zanim zainwestuje się w UI edytora.
-4. Edytor wizualny z draft/publish — największy kawałek pracy, dopiero gdy 1-3 działają stabilnie.
-5. Custom code sandbox — najbardziej ryzykowny element (bezpieczeństwo), świadomie na końcu i tylko jeśli realnie pojawi się klient/sklep tego wymagający.
+1. Middleware rozpoznawania tenanta w `sklepikFront` (rozszerza Fazę 2 `multi-store-support.md`).
+2. `SklepikPageRepository` (Backend, punkt 1 wyżej) — nowa implementacja istniejącego interfejsu `PageRepository` z `edytor-sklepu`.
+3. Zamontowanie `component-library`/`renderer`/`editor-core` z `edytor-sklepu` jako zależności `sklepikFront`; trasa `/admin` z sesją auth przeciw `sklepik`.
+4. Design tokens (Etap 1 personalizacji) — pierwsza widoczna wartość dla właściciela sklepu.
+5. Warianty stylu sekcji (Etap 2 personalizacji).
+6. JSON-Logic + custom code embed w iframe (bezpieczna rozszerzalność).
+7. Uproszczony Store Factory: nowy sklep = rekord `store_id` + Vercel Domains API (zastępuje `GithubClient`/`VercelClient` z `store-factory.md`).
+8. Nocny E2E jako siatka bezpieczeństwa: utwórz sklep → zaloguj się do `/admin` → edytuj → zweryfikuj na żywym storefroncie → posprzątaj.
+9. Zagnieżdżone kontenery (Etap 3 personalizacji), media, reszta biblioteki sekcji (7/14 dziś) — na żądanie, po ustabilizowaniu 1-8.
 
 ## Constraints on Current Work
 
-- Nic w bieżącej pracy nad Fazą 1 (`multi-store-support.md`) nie wymaga zmian z powodu tego planu — ten dokument nie jest jeszcze rozpoczęty.
-- Jeśli ktoś zacznie budować Fazę 2 (routing po domenie) zanim ten plan wystartuje, powinien projektować ją tak, żeby dociąganie configu sklepu było już przygotowane pod rozszerzenie o drzewo strony/theme w przyszłości (np. jeden endpoint "config sklepu", nie rozproszone zmienne) — ale nie budować tego na zapas, jeśli nie ma jeszcze decyzji o starcie tego planu.
+- `edytor-sklepu` pozostaje osobnym repo (dostarcza silnik jako pakiety, docelowo `@sklepik/*`), ale **przestaje budować pod model "repo per sklep"** — `GitHubPageRepository` i decyzja "`/admin` w repo każdego sklepu" (`edytor-sklepu/docs/ARCHITEKTURA.md`) są superseded przez ten dokument; nie kontynuować tamtego kierunku bez nowej decyzji.
+- Nie kasować kodu Store Factory (`Spree::ProvisioningRun`, `GithubClient`, `VercelClient`) od razu — zostaje jako legacy do uprzątnięcia po ustabilizowaniu nowego modelu, nie rozwijać dalej.
+- Middleware rozpoznawania tenanta (krok 1 Migration Path) powinien być zaprojektowany pod pełne wykorzystanie przez punkty 2-4, nie budowany prowizorycznie.
 
 ## Open Questions
 
-- Model danych strony: znormalizowane `Page`/`Section` (query'owalne, ale więcej migracji) czy jeden `jsonb` z całym drzewem (prostsze, mniej elastyczne w query'owaniu)?
-- Gdzie żyje edytor wizualny: nowa sekcja `packages/dashboard`, czy osadzony bezpośrednio w `sklepikFront` (jak Shopify theme editor na subdomenie `/editor`)?
-- Model bezpieczeństwa custom code sandbox — jak izolować dostęp do danych, sieci, innych sklepów. Osobna, głęboka decyzja, nierozstrzygnięta tutaj.
-- Czy rejestr komponentów jest w pełni generyczny (dowolny sklep e-commerce), czy zakłada pewien kształt (produkty kakao, konkretny typ katalogu) — wpływa na to, jak bardzo "platformowe" ma być to rozwiązanie.
-- Koszt/tempo: to jest wielomiesięczny projekt zespołowy, nie zadanie na sesję agenta — kiedy właściciel chce to realnie zacząć, potrzebny osobny, szczegółowy plan sprintu, nie tylko ta wizja.
+- Format przechowywania drzewa sekcji: jeden `jsonb` per strona (prostsze na start, wybrane) vs JSON per sekcja w osobnych rekordach (badanie wskazuje mniej konfliktów przy równoczesnej edycji różnych sekcji tej samej strony — rozważyć przy pierwszych realnych konfliktach, nie budować na zapas).
+- Governance: sklepy klientów zawsze na tej samej domenie platformy z custom domain attached, czy kiedyś jednak opcja "eksportu"/przekazania czegoś klientowi (jak Webflow export) jako płatny tier — nierozstrzygnięte, nie blokuje obecnego planu.
+- Model cenowy warstw personalizacji (tokens/warianty/kontenery/custom code) — nierozstrzygnięte.
+- Kiedy (jeśli w ogóle) inwestować w serwerowy sandbox custom code (QuickJS-WASM czy dalej) — dopiero gdy realny klient tego zażąda, nie z wyprzedzeniem.
 
 ## References
 
 - [`multi-store-support.md`](multi-store-support.md) — Faza 1 (zaimplementowana), Faza 2 (routing po domenie, warunek wstępny tego planu).
-- [`docs/ideas/multi-store-provisioning.md`](../ideas/multi-store-provisioning.md) — wcześniejszy szkic automatyzacji provisioningu (model "osobny projekt Vercel per sklep"); ten plan jest świadomie inną, bardziej docelową ścieżką niż tamten szkic.
-- Wzorce referencyjne (nie kod, tylko architektura do inspiracji): Shopify Online Store 2.0 (sections/blocks), Webflow, Builder.io.
+- [`store-factory.md`](store-factory.md) — odrzucona ścieżka (repo per sklep), zachowana jako materiał historyczny/referencyjny.
+- `edytor-sklepu` (repo `pawelekbyra/edytor-sklepu`) — `docs/ROADMAPA.md`, `docs/ARCHITEKTURA.md`, `docs/MACIERZ_ZGODNOSCI.md` — silnik edytora do zamontowania, nie do zbudowania od zera.
+- Wzorce referencyjne (architektura, nie kod): Shopify Online Store 2.0 (sections/blocks/theme settings/Custom Liquid/App Blocks/Metaobjects), Vercel Platforms Starter Kit (routing po domenie w jednym deploymencie), Webflow/Framer/Wix Studio (swobodny layout, custom code embed w iframe), Sanity Visual Editing (overlay zamiast wstrzykiwania atrybutów edycyjnych do komponentów — wzorzec do zastosowania przy integracji edytora, adresuje wcześniejszy błąd z error boundary blokującym import do Server Component).
+- Dziewięć research-passów z sesji 2026-07-17 (multi-tenant architecture, page builder architecture, fleet update, multi-tenant auth, CI/CD testing, headless commerce, Shopify theming depth, sandboxed custom code, design tokens) — pełne ustalenia w historii tamtej sesji; kluczowe wnioski wplecione wyżej.

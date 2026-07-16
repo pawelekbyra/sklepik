@@ -1,11 +1,23 @@
 # Store Factory — niezależna aplikacja per sklep (repo + Vercel per sklep)
 
-**Status:** Active — Etap 0 wdrożony produkcyjnie i lokalnie utwardzony; Etap 1 wdrożony i naprawiony; Etap 2 (ręczny pilot) następny
-**Target:** `sklepik` (control plane + provisioning), nowe repozytoria per sklep (starter wydzielony z `sklepikFront`)
+**Status:** Superseded (2026-07-17) — patrz nota niżej. Zachowany jako materiał historyczny/referencyjny, nie jako aktywny plan.
+**Target (historyczny):** `sklepik` (control plane + provisioning), nowe repozytoria per sklep (starter wydzielony z `sklepikFront`)
 **Depends on:** [`multi-store-support.md`](multi-store-support.md) — Faza 1 (zaimplementowana, fundament ról/store w Admin API)
-**Supersedes:** docelowy model niezależności z [`storefront-composition-system.md`](storefront-composition-system.md) — patrz sekcja "Relacja do composition-system" niżej
+**Superseded by:** [`storefront-composition-system.md`](storefront-composition-system.md) — model docelowy od 2026-07-17
 **Author:** właściciel + agent (sesja 2026-07-13, na podstawie dokumentu strategicznego "Store Factory 2026" dostarczonego przez właściciela)
-**Last updated:** 2026-07-13
+**Last updated:** 2026-07-17 (nota o odrzuceniu)
+
+## Nota o zmianie decyzji (2026-07-17)
+
+**Właściciel odrzucił model "repo + Vercel per sklep" jako domyślną ścieżkę** — decyzja świadoma i definitywna ("to była zła decyzja, chcę ją uciąć"), podjęta po dziewięciu niezależnych research-passach nad branżowymi wzorcami multi-tenant SaaS. Kluczowe ustalenie: główne realne wzorce (Shopify, Vercel Platforms Starter Kit, duże wdrożenia WordPress) domyślnie renderują wielu najemców z jednego wspólnego runtime'u — separacja kodu per klient jest kosztownym wyjątkiem (case study Spotify: bez dedykowanego narzędzia propagacja jednej zmiany na 70% repo zajmowała 6+ miesięcy), nie standardem, a ten projekt nie ma zasobów jednego zespołu Spotify.
+
+**Nowy model docelowy:** [`storefront-composition-system.md`](storefront-composition-system.md) — jeden współdzielony storefront, layout jako dane, `/admin` jako chroniona trasa tej samej aplikacji. Ten dokument zostaje jako:
+1. materiał historyczny (uzasadnienie tamtej decyzji, do zrozumienia dlaczego coś zostało napisane tak jak zostało),
+2. potencjalne źródło pomysłów na przyszły, opcjonalny, płatny tier izolacji (`dedicated_data`/`dedicated_stack` z drabiny niżej) dla klientów enterprise, którzy realnie potrzebują osobnego backendu — ale **nie jako model domyślny**.
+
+**Kod napisany pod ten plan** (`Spree::ProvisioningRun`/`ProvisioningStep`, `Spree::Provisioning::{GithubClient,VercelClient,ProvisionStore}`, Sidekiq job, endpoint `.../stores/:id/provisioning_run`, UI w `/$storeId/new-store`) **zostaje legacy** — nie rozwijać dalej, nie usuwać od razu (uprzątnięcie po ustabilizowaniu nowego modelu, żeby nie tracić działającego kodu na wypadek, gdyby jednak przydał się jako fundament przyszłego tieru enterprise). Nie kontynuować Etapu 2 (ręczny pilot) ani żadnego dalszego etapu tego planu.
+
+Reszta tego dokumentu opisuje odrzuconą decyzję z 2026-07-13 — zachowana bez zmian jako zapis historyczny.
 
 ## Summary
 

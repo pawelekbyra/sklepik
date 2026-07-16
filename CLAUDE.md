@@ -10,6 +10,7 @@ Obowiązkowa lektura przed pracą:
 - [`docs/stan-projektu.md`](docs/stan-projektu.md) — bieżący stan, znane problemy.
 - [`docs/roadmap.md`](docs/roadmap.md) — backlog i priorytety (P0 przed P1 itd.).
 - [`docs/architektura.md`](docs/architektura.md) — mapa systemu i hostingu (Render + Vercel + R2).
+- [`docs/plans/storefront-composition-system.md`](docs/plans/storefront-composition-system.md) — **model docelowy wielosklepowości** (od 2026-07-17): jeden współdzielony storefront, layout jako dane, `/admin` jako trasa tej samej aplikacji. `docs/plans/store-factory.md` (repo per sklep) jest **odrzucone/legacy** — nie kontynuować tamtego kierunku.
 
 ## Protokół dokumentacji (obowiązkowy)
 
