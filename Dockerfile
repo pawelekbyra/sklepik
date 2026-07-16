@@ -17,8 +17,14 @@ WORKDIR /workspace
 COPY spree/ /workspace/spree/
 
 # Clone spree-starter fresh into /workspace/server
+# spree_dashboard is stripped from its Gemfile: upstream declares it with
+# `path: SPREE_PATH/spree`, but this fork never had that engine — the admin
+# UI is packages/dashboard, deployed separately to Vercel, not baked into
+# this image. Without this, bundle install 404s looking for a gem that
+# doesn't exist in this fork's spree/ tree.
 RUN git clone --depth 1 https://github.com/spree/spree-starter.git /workspace/server \
-    && echo "3.4.4" > /workspace/server/.ruby-version
+    && echo "3.4.4" > /workspace/server/.ruby-version \
+    && sed -i "/gem 'spree_dashboard'/d" /workspace/server/Gemfile
 
 WORKDIR /workspace/server
 
