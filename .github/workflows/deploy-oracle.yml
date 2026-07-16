@@ -80,6 +80,16 @@ jobs:
           git checkout main
           git reset --hard origin/main
 
+          # docker-compose v1 (the old Python CLI) chokes on images built with
+          # newer BuildKit manifest/attestation metadata: `KeyError:
+          # 'ContainerConfig'` on any container recreate. Migrate once to the
+          # `docker compose` v2 plugin, which handles that format fine.
+          if ! docker compose version &>/dev/null; then
+            sudo apt-get remove -y docker-compose || true
+            sudo apt-get update -y
+            sudo apt-get install -y docker-compose-plugin
+          fi
+
           # First run: generate .env and a self-signed cert so compose can start.
           # Replace ssl/cert.pem with a real Let's Encrypt cert once there's a domain.
           if [ ! -f .env ]; then
@@ -96,15 +106,15 @@ jobs:
           # Build the fork's image directly on the VPS (image built by the
           # `build` job above is only a CI fail-fast gate — GHCR auth isn't
           # set up here, so this box builds its own copy instead of pulling).
-          docker-compose build web sidekiq
-          docker-compose up -d postgres redis
+          docker compose build web sidekiq
+          docker compose up -d postgres redis
           sleep 5
-          docker-compose up -d --no-deps --force-recreate web sidekiq nginx
+          docker compose up -d --no-deps --force-recreate web sidekiq nginx
 
           # Wait for web container to be healthy (not just created)
           echo "Waiting for web container to start..."
           for i in {1..30}; do
-            if docker-compose exec -T web puma -v &>/dev/null; then
+            if docker compose exec -T web puma -v &>/dev/null; then
               echo "Web container ready"
               break
             fi
@@ -113,15 +123,15 @@ jobs:
           done
 
           # Copy engine migrations into the host app, then migrate
-          docker-compose exec -T web bundle exec rake spree:install:migrations
-          docker-compose exec -T web bundle exec rake db:migrate
-          docker-compose exec -T web bundle exec rake spree:role_users:backfill_store_ids
+          docker compose exec -T web bundle exec rake spree:install:migrations
+          docker compose exec -T web bundle exec rake db:migrate
+          docker compose exec -T web bundle exec rake spree:role_users:backfill_store_ids
 
           # Precompile assets
-          docker-compose exec -T web bundle exec rake assets:precompile
+          docker compose exec -T web bundle exec rake assets:precompile
 
           # Clear cache if needed
-          docker-compose exec -T web bundle exec rake cache:clear
+          docker compose exec -T web bundle exec rake cache:clear
 
           # Health check
           sleep 5
