@@ -2,6 +2,8 @@
 
 **Nieużywane na produkcji od 2026-07-09** — backend działa teraz na Oracle Cloud, patrz [`deployment-oracle.md`](deployment-oracle.md). Ten plik zostaje jako historyczna referencja: opisuje jak działał deploy na Renderze i jakie ryzyko (timestampy migracji, idempotentność) stąd wynika — ta sama zasada idempotentnych migracji obowiązuje nadal, bo `server/` jest efemeryczny również w obecnym Oracle flow.
 
+**2026-07-16:** `render.yaml`, `bin/render-build.sh` i `bin/render-release.sh` zostały usunięte z repo — Render nadal automatycznie próbował deployować każdy push na `main` przez swoją własną integrację z GitHubem (niezależną od tego repo's CI), mimo że backend od tygodni faktycznie żyje na Oracle Cloud. Usunięcie blueprintu z repo samo nie wyłącza serwisu w panelu Render — to trzeba zrobić (zawiesić/usunąć) ręcznie w dashboardzie.
+
 ## Zasoby (Blueprint `render.yaml`)
 
 | Zasób | Nazwa | Uwagi |
