@@ -45,6 +45,49 @@ RSpec.describe Spree::StorefrontPage do
     expect(page.errors[:draft_document]).to include('section 0 button link is invalid')
   end
 
+  it 'accepts all seven content section types plus product_grid' do
+    page.draft_document['sections'] = [
+      { 'id' => SecureRandom.uuid, 'type' => 'hero', 'position' => 0,
+        'preferences' => { 'heading' => 'H', 'subheading' => 'S', 'backgroundImageAssetId' => nil } },
+      { 'id' => SecureRandom.uuid, 'type' => 'product_grid', 'position' => 1,
+        'preferences' => { 'heading' => 'Produkty', 'taxonId' => nil, 'limit' => 8 } },
+      { 'id' => SecureRandom.uuid, 'type' => 'rich_text', 'position' => 2,
+        'preferences' => { 'html' => '<p>Tekst</p>' } },
+      { 'id' => SecureRandom.uuid, 'type' => 'newsletter', 'position' => 3,
+        'preferences' => { 'heading' => 'H', 'subheading' => 'S', 'buttonLabel' => 'Zapisz' } },
+      { 'id' => SecureRandom.uuid, 'type' => 'image_banner', 'position' => 4,
+        'preferences' => { 'imageAssetId' => nil, 'heightPx' => 384, 'overlayTransparency' => 40, 'verticalAlignment' => 'middle' } },
+      { 'id' => SecureRandom.uuid, 'type' => 'faq', 'position' => 5,
+        'preferences' => { 'heading' => 'FAQ', 'items' => [{ 'question' => 'Q?', 'answer' => 'A.' }] } },
+      { 'id' => SecureRandom.uuid, 'type' => 'spacer', 'position' => 6,
+        'preferences' => { 'heightPx' => 40 } },
+      { 'id' => SecureRandom.uuid, 'type' => 'button', 'position' => 7,
+        'preferences' => { 'label' => 'Kliknij', 'href' => '/kontakt', 'openInNewTab' => false } }
+    ]
+
+    expect(page).to be_valid
+  end
+
+  it 'rejects an image_banner with an out-of-range overlayTransparency' do
+    page.draft_document['sections'] = [
+      { 'id' => SecureRandom.uuid, 'type' => 'image_banner', 'position' => 0,
+        'preferences' => { 'imageAssetId' => nil, 'heightPx' => 384, 'overlayTransparency' => 150, 'verticalAlignment' => 'middle' } }
+    ]
+
+    expect(page).not_to be_valid
+    expect(page.errors[:draft_document]).to include('section 0 overlayTransparency must be between 0 and 100')
+  end
+
+  it 'accepts non-button block types (image, rich_text, navigation) inside hero' do
+    page.draft_document['sections'].first['blocks'] = [
+      { 'id' => SecureRandom.uuid, 'type' => 'image', 'position' => 0, 'preferences' => { 'assetId' => nil, 'alt' => 'Alt text' } },
+      { 'id' => SecureRandom.uuid, 'type' => 'rich_text', 'position' => 1, 'preferences' => { 'html' => '<p>Hi</p>' } },
+      { 'id' => SecureRandom.uuid, 'type' => 'navigation', 'position' => 2, 'preferences' => { 'label' => 'Link', 'href' => '/x', 'linkedPageId' => nil } }
+    ]
+
+    expect(page).to be_valid
+  end
+
   it 'publishes an independent snapshot and records its author' do
     admin = create(:admin_user)
     page.save!

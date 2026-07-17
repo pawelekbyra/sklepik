@@ -7,7 +7,13 @@ module Spree
     has_prefix_id :sfpage
 
     SCHEMA_VERSION = 1
-    SECTION_TYPES = %w[hero product_grid].freeze
+    # Mirrors edytor-sklepu's packages/schema SECTION_TYPES: content sections rendered by the
+    # shared @editor/component-library (hero, rich_text, newsletter, image_banner, faq, spacer,
+    # button) plus commerce sections filled with real store data by the host, not the library
+    # (product_grid). See sklepik/docs/plans/storefront-composition-system.md.
+    SECTION_TYPES = %w[hero product_grid rich_text newsletter image_banner faq spacer button].freeze
+    # Mirrors edytor-sklepu's packages/schema BLOCK_TYPES.
+    BLOCK_TYPES = %w[button image rich_text navigation].freeze
     MAX_SECTIONS = 30
 
     belongs_to :store, class_name: 'Spree::Store', inverse_of: :storefront_pages
@@ -118,37 +124,110 @@ module Spree
         return
       end
 
-      validate_hero(attribute, preferences, section['blocks'], index) if type == 'hero'
-      validate_product_grid(attribute, preferences, index) if type == 'product_grid'
+      case type
+      when 'hero' then validate_hero(attribute, preferences, section['blocks'], index)
+      when 'product_grid' then validate_product_grid(attribute, preferences, index)
+      when 'rich_text' then validate_rich_text(attribute, preferences, index)
+      when 'newsletter' then validate_newsletter(attribute, preferences, index)
+      when 'image_banner' then validate_image_banner(attribute, preferences, section['blocks'], index)
+      when 'faq' then validate_faq(attribute, preferences, index)
+      when 'spacer' then validate_spacer(attribute, preferences, index)
+      when 'button' then validate_button_preferences(attribute, preferences, index)
+      end
     end
 
     def validate_hero(attribute, preferences, blocks, index)
       validate_text(attribute, preferences['heading'], "section #{index} heading", 160)
       validate_text(attribute, preferences['subheading'], "section #{index} subheading", 500)
-      return if blocks.nil?
-      return errors.add(attribute, "section #{index} blocks must be an array") unless blocks.is_a?(Array)
-
-      blocks.each_with_index do |block, block_index|
-        unless block.is_a?(Hash) && block['type'] == 'button'
-          errors.add(attribute, "section #{index} block #{block_index} has an unsupported type")
-          next
-        end
-
-        button = block['preferences']
-        unless button.is_a?(Hash)
-          errors.add(attribute, "section #{index} block #{block_index} must have preferences")
-          next
-        end
-        validate_text(attribute, button['label'], "section #{index} button label", 80)
-        href = button['href'].to_s
-        errors.add(attribute, "section #{index} button link is invalid") unless href.start_with?('/', 'https://', 'http://')
-      end
+      validate_blocks(attribute, blocks, index)
     end
 
     def validate_product_grid(attribute, preferences, index)
       validate_text(attribute, preferences['heading'], "section #{index} heading", 160)
       limit = preferences['limit']
       errors.add(attribute, "section #{index} limit must be between 1 and 24") unless limit.is_a?(Integer) && limit.between?(1, 24)
+    end
+
+    def validate_rich_text(attribute, preferences, index)
+      validate_text(attribute, preferences['html'], "section #{index} html", 20_000)
+    end
+
+    def validate_newsletter(attribute, preferences, index)
+      validate_text(attribute, preferences['heading'], "section #{index} heading", 160)
+      validate_text(attribute, preferences['subheading'], "section #{index} subheading", 500)
+      validate_text(attribute, preferences['buttonLabel'], "section #{index} button label", 80)
+    end
+
+    def validate_image_banner(attribute, preferences, blocks, index)
+      height = preferences['heightPx']
+      errors.add(attribute, "section #{index} heightPx must be a positive integer") unless height.is_a?(Integer) && height >= 1
+      transparency = preferences['overlayTransparency']
+      unless transparency.is_a?(Integer) && transparency.between?(0, 100)
+        errors.add(attribute, "section #{index} overlayTransparency must be between 0 and 100")
+      end
+      alignment = preferences['verticalAlignment']
+      errors.add(attribute, "section #{index} verticalAlignment is invalid") unless %w[top middle bottom].include?(alignment)
+      validate_blocks(attribute, blocks, index)
+    end
+
+    def validate_faq(attribute, preferences, index)
+      validate_text(attribute, preferences['heading'], "section #{index} heading", 160)
+      items = preferences['items']
+      return errors.add(attribute, "section #{index} items must be an array") unless items.is_a?(Array)
+
+      items.each_with_index do |item, item_index|
+        unless item.is_a?(Hash)
+          errors.add(attribute, "section #{index} item #{item_index} must be an object")
+          next
+        end
+        validate_text(attribute, item['question'], "section #{index} item #{item_index} question", 300)
+        validate_text(attribute, item['answer'], "section #{index} item #{item_index} answer", 2_000)
+      end
+    end
+
+    def validate_spacer(attribute, preferences, index)
+      height = preferences['heightPx']
+      errors.add(attribute, "section #{index} heightPx must be a positive integer") unless height.is_a?(Integer) && height >= 1
+    end
+
+    def validate_button_preferences(attribute, preferences, index)
+      validate_text(attribute, preferences['label'], "section #{index} label", 80)
+      href = preferences['href'].to_s
+      errors.add(attribute, "section #{index} link is invalid") unless href.start_with?('/', 'https://', 'http://')
+    end
+
+    def validate_blocks(attribute, blocks, index)
+      return if blocks.nil?
+      return errors.add(attribute, "section #{index} blocks must be an array") unless blocks.is_a?(Array)
+
+      blocks.each_with_index do |block, block_index|
+        unless block.is_a?(Hash) && BLOCK_TYPES.include?(block['type'])
+          errors.add(attribute, "section #{index} block #{block_index} has an unsupported type")
+          next
+        end
+
+        preferences = block['preferences']
+        unless preferences.is_a?(Hash)
+          errors.add(attribute, "section #{index} block #{block_index} must have preferences")
+          next
+        end
+        validate_block_preferences(attribute, block['type'], preferences, "section #{index} block #{block_index}")
+      end
+    end
+
+    def validate_block_preferences(attribute, type, preferences, label)
+      case type
+      when 'button'
+        validate_text(attribute, preferences['label'], "#{label} label", 80)
+        href = preferences['href'].to_s
+        errors.add(attribute, "#{label} link is invalid") unless href.start_with?('/', 'https://', 'http://')
+      when 'image'
+        validate_text(attribute, preferences['alt'], "#{label} alt", 300)
+      when 'rich_text'
+        validate_text(attribute, preferences['html'], "#{label} html", 20_000)
+      when 'navigation'
+        validate_text(attribute, preferences['label'], "#{label} label", 80)
+      end
     end
 
     def validate_text(attribute, value, label, maximum)

@@ -317,3 +317,25 @@ Bramka jest po stronie zaufanego backendu i obejmuje wszystkie storefronty oraz 
 ### Wpływ na storefront i upstream
 
 Istniejący storefront nie wymaga nowej logiki. Próba checkoutu szkicu otrzymuje kontrolowany błąd `cart_cannot_complete`. Zmiana dotyka kontrolerów checkoutu forka i musi być uwzględniana przy aktualizacjach upstream.
+
+## 2026-07-17 — `StorefrontPage` rozszerzony o pełny słownik sekcji treści z `edytor-sklepu`
+
+### Status
+
+Zaimplementowane w kodzie, **nieprzetestowane wykonaniem** — w tej sesji nie było dostępnego Ruby/Bundlera/Dockera, więc RSpec nie zostało uruchomione. Zmiana jest przejrzana ręcznie, nie zweryfikowana. Wymaga uruchomienia `bundle exec rspec spec/models/spree/storefront_page_spec.rb` przed poleganiem na tym w produkcji.
+
+### Kontekst
+
+`storefront-composition-system.md` (kanon od 2026-07-17) ustala, że dokumenty stron żyją w bazie `sklepik`, nie w repo klienta. `Spree::StorefrontPage` (z odrzuconej pracy Store Factory, PR #40) już to robi — store-scoped, draft/publish, optimistic locking — ale akceptował tylko dwa typy sekcji (`hero`, `product_grid`), podczas gdy `edytor-sklepu`'s `component-library` renderuje siedem.
+
+### Decyzja
+
+`SECTION_TYPES` rozszerzone o `rich_text`, `newsletter`, `image_banner`, `faq`, `spacer`, `button` — dokładne odpowiedniki `packages/schema`'s Zod schemas w `edytor-sklepu` (te same nazwy pól preferencji, te same limity). Walidacja bloków (`hero`, `image_banner`) zgeneralizowana z samego `button` na wszystkie cztery typy z `BLOCK_TYPES` tamtego repo (`button`, `image`, `rich_text`, `navigation`). Dodano `id` (`prefixed_id`) do serializera admina — brakowało go, a klient (`SklepikPageRepository`) potrzebuje stabilnego identyfikatora.
+
+### Uzasadnienie
+
+Ten model już istniał, był przetestowany i pasował do nowej architektury niemal dokładnie — jedyna luka to węższy słownik sekcji. Rozszerzenie zamiast przepisania unika duplikowania przetestowanego kodu.
+
+### Wpływ na storefront i upstream
+
+Zmiana jest addytywna — istniejące dwa typy sekcji (`hero`, `product_grid`) zachowują dotychczasową walidację bez zmian. Kontrakt API (`draft_document`/`published_document` JSON) się nie zmienia w kształcie, tylko w dozwolonych wartościach `type`. Konsument: `edytor-sklepu`'s nowy `SklepikPageRepository` (`packages/persistence/src/sklepik/`). `sklepikFront` jeszcze tego nie konsumuje — to następny krok.
