@@ -42,7 +42,7 @@ RSpec.describe Spree::StorefrontPage do
     ]
 
     expect(page).not_to be_valid
-    expect(page.errors[:draft_document]).to include('section 0 button link is invalid')
+    expect(page.errors[:draft_document]).to include('section 0 block 0 link is invalid')
   end
 
   it 'accepts all seven content section types plus product_grid' do
