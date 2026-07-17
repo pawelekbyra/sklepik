@@ -64,7 +64,7 @@ Zgrubny szkic kolejności do potwierdzenia w kolejnej sesji:
 4. Podstawowy katalog produktów/zamówień/koszyk — odpowiednik dzisiejszego Store/Admin API.
 5. Migracja danych z produkcyjnego Spree (Kakałowy Sklepik) — eksport/import albo równoległy zapis, do zaprojektowania.
 6. Przełączenie `sklepikFront` na nowy backend (nowy klient API).
-7. Cutover produkcji, wygaszenie Spree.
+7. **Cutover produkcji, wygaszenie Spree.** Serwer produkcyjny do wygaszenia/przekonfigurowania na tym etapie: Oracle Cloud VPS `141.253.103.172` (alias `141-253-103-172.nip.io`, patrz `docs/deployment-oracle.md`), klucz SSH: `ssh-key-2026-07-08.key` w katalogu „kakałowy sklepik" na pulpicie. **Nie czyścić przed tym krokiem** — to żywa produkcja Kakałowego Sklepika, musi działać nieprzerwanie do czasu gotowości Medusy do przejęcia ruchu (zgodnie z Key Decision 5).
 
 ## Constraints on Current Work
 
