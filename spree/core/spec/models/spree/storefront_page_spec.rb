@@ -100,4 +100,26 @@ RSpec.describe Spree::StorefrontPage do
     expect(page.published_at).to be_present
     expect(page.published_document['sections'].first['preferences']['heading']).not_to eq('Changed later')
   end
+
+  it 'logs a warning when the draft document grows past the size threshold' do
+    # Each rich_text section is capped at 20,000 chars (see validate_rich_text) — stay under that
+    # per-field limit and accumulate size across several sections instead.
+    large_sections = (0...6).map do |i|
+      {
+        'id' => SecureRandom.uuid,
+        'type' => 'rich_text',
+        'position' => i,
+        'preferences' => { 'html' => '<p>' + ('x' * 19_000) + '</p>' }
+      }
+    end
+    page.draft_document['sections'] = large_sections
+
+    expect(Rails.logger).to receive(:warn).with(/draft_document is \d+ bytes/)
+    page.save!
+  end
+
+  it 'does not warn for a normally-sized document' do
+    expect(Rails.logger).not_to receive(:warn)
+    page.save!
+  end
 end

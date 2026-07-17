@@ -339,3 +339,25 @@ Ten model już istniał, był przetestowany i pasował do nowej architektury nie
 ### Wpływ na storefront i upstream
 
 Zmiana jest addytywna — istniejące dwa typy sekcji (`hero`, `product_grid`) zachowują dotychczasową walidację bez zmian. Kontrakt API (`draft_document`/`published_document` JSON) się nie zmienia w kształcie, tylko w dozwolonych wartościach `type`. Konsument: `edytor-sklepu`'s nowy `SklepikPageRepository` (`packages/persistence/src/sklepik/`). `sklepikFront` jeszcze tego nie konsumuje — to następny krok.
+
+## 2026-07-17 — Ostrzeżenie o rozmiarze `StorefrontPage` (JSONB TOAST)
+
+### Status
+
+Zaimplementowane i **zweryfikowane wykonaniem** (RSpec, natywny Ruby 3.4 na Windows + te same tymczasowe łatki co poprzedni wpis — `stackprof` wyłączony, `sqlite3` dodany lokalnie, nie commitowane). 9/9 przykładów w `storefront_page_spec.rb` zielone, w tym dwa nowe testy dla tej zmiany.
+
+### Kontekst
+
+Research-pass porównujący nasz model przechowywania treści do Shopify/Sanity/Contentful (sesja 2026-07-17, patrz `docs/plans/storefront-composition-system.md`) potwierdził, że model JSONB-blob-per-strona jest zgodny z branżą, ale wskazał realne ryzyko: w Postgresie wartości JSONB powyżej ~2KB trafiają do TOAST, gdzie każdy zapis kopiuje całą wartość — przy dokumentach rzędu dziesiątek-setek KB to mierzalne spowolnienie zapytań (2-40x w cytowanych benchmarkach).
+
+### Decyzja
+
+`Spree::StorefrontPage::WARN_DOCUMENT_SIZE_BYTES = 100_000` (100KB) — miękki próg. `after_save` loguje `Rails.logger.warn` z `store_id`/`slug`/rozmiarem, gdy `draft_document` go przekroczy. Nic nie jest blokowane — to widoczność, nie limit. Dodano też publiczną metodę `draft_document_size_bytes` (i `self.document_size_bytes`) do ewentualnego wykorzystania w przyszłym banerze gotowości w adminie, bez duplikowania serializacji.
+
+### Uzasadnienie
+
+Tanie ubezpieczenie: jedna metoda + jeden callback, zero ryzyka dla istniejącego zachowania (żadna walidacja, żaden blok zapisu). Rozwiązania cięższe (GIN index, osobna tabela wersji, CRDT) są świadomie odrzucone jako przedwczesne — research-pass to potwierdził wprost dla obecnej skali (jeden edytor na sklep naraz, brak potrzeby query'owania wewnątrz dokumentu).
+
+### Wpływ na storefront i upstream
+
+Zero wpływu na kontrakt API czy zachowanie storefrontu — czysto obserwowalność po stronie backendu (logi). Nie wymaga zmian w `sklepikFront` ani `edytor-sklepu`.

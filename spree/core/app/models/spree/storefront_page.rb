@@ -15,6 +15,11 @@ module Spree
     # Mirrors edytor-sklepu's packages/schema BLOCK_TYPES.
     BLOCK_TYPES = %w[button image rich_text navigation].freeze
     MAX_SECTIONS = 30
+    # Not a hard limit — a JSONB value past ~2KB moves to Postgres TOAST storage, where every
+    # write recopies the whole value regardless of which field changed; past a few hundred KB
+    # that shows up as real query latency. Warn early so growth is visible before it's a
+    # production problem, per sklepik/docs/plans/storefront-composition-system.md research notes.
+    WARN_DOCUMENT_SIZE_BYTES = 100_000
 
     belongs_to :store, class_name: 'Spree::Store', inverse_of: :storefront_pages
     belongs_to :published_by, class_name: Spree.admin_user_class.to_s, optional: true
@@ -25,6 +30,7 @@ module Spree
     validate :published_document_is_supported, if: :published_document?
 
     before_validation :set_defaults, on: :create
+    after_save :warn_if_document_is_large
 
     def publish!(user:)
       with_lock do
@@ -38,6 +44,16 @@ module Spree
 
     def published?
       published_document.present? && published_at.present?
+    end
+
+    # Bytes of the JSON-serialized draft document — exposed so callers (e.g. a future admin
+    # readiness banner) can show this without duplicating the serialization.
+    def draft_document_size_bytes
+      self.class.document_size_bytes(draft_document)
+    end
+
+    def self.document_size_bytes(document)
+      document.to_json.bytesize
     end
 
     def self.default_document
@@ -76,6 +92,16 @@ module Spree
       self.title ||= 'Homepage'
       self.draft_document ||= self.class.default_document
       self.lock_version ||= 0
+    end
+
+    def warn_if_document_is_large
+      size = draft_document_size_bytes
+      return if size <= WARN_DOCUMENT_SIZE_BYTES
+
+      Rails.logger.warn(
+        "[Spree::StorefrontPage] store_id=#{store_id} slug=#{slug} draft_document is " \
+        "#{size} bytes (over #{WARN_DOCUMENT_SIZE_BYTES}) — see WARN_DOCUMENT_SIZE_BYTES comment."
+      )
     end
 
     def draft_document_is_supported

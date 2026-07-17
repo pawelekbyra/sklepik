@@ -75,6 +75,17 @@ Jeden współdzielony storefront (dziś `sklepikFront`, ewoluujący w miejscu, n
 - Governance: sklepy klientów zawsze na tej samej domenie platformy z custom domain attached, czy kiedyś jednak opcja "eksportu"/przekazania czegoś klientowi (jak Webflow export) jako płatny tier — nierozstrzygnięte, nie blokuje obecnego planu.
 - Model cenowy warstw personalizacji (tokens/warianty/kontenery/custom code) — nierozstrzygnięte.
 - Kiedy (jeśli w ogóle) inwestować w serwerowy sandbox custom code (QuickJS-WASM czy dalej) — dopiero gdy realny klient tego zażąda, nie z wyprzedzeniem.
+- **Kiedy robić refaktor klienta `sklepikFront` z singletona na per-request (2026-07-17):** zbadane i świadomie odłożone. `sklepikFront`'s klient Spree jest dziś modułowym singletonem inicjowanym raz z env-varów — realny problem (wyciek configu sklepu A do żądania sklepu B) może wystąpić dopiero, gdy istnieje **drugi prawdziwy tenant** z innym configem na tym samym procesie. Refaktor dotyka ~60 miejsc w 15 plikach, w tym checkout/płatności/konto klienta — zrobić dopiero przy onboardowaniu drugiego realnego sklepu, nie na zapas (Next.js 16 wymaga wtedy `async`/`await headers()` w `getClient()`/`getConfig()`, co i tak wymusi dotknięcie tych plików — najlepiej zrobić to razem z prawdziwym drugim tenantem do przetestowania na żywo, nie w próżni).
+
+## Zweryfikowane względem branży (2026-07-17)
+
+Trzy niezależne research-passy sprawdziły dzisiejsze decyzje implementacyjne krytycznie (nie potwierdzająco) względem Shopify, Sanity, Contentful, Medusa.js i Vercel Platforms Starter Kit:
+
+- **Model treści (JSONB blob per strona, draft/published, optimistic locking)** — zgodny z tym, co robi Shopify Online Store 2.0 dla tego samego problemu (JSON templates). Nie naiwne uproszczenie, sprawdzony wzorzec produkcyjny.
+- **Jeden storefront dla wielu sklepów, routing po domenie** — **nie** jest to wzorzec Shopify (oni idą w osobny deployment Hydrogen per marka/rynek), ale jest dokładnie oficjalnym, udokumentowanym wzorcem Vercel Platforms Starter Kit. Świadomy wybór innego, równie uznanego modelu, nie błąd.
+- **Publikacja pakietów `@pawelekbyra/*` przez GitHub Packages + Changesets** — rekomendowane zostać (koszt migracji na Verdaccio/npmjs nie opłaca się przy tej skali).
+
+Trzy konkretne wnioski do działania: (1) monitoring rozmiaru dokumentu JSONB — **zrobione** (`Spree::StorefrontPage::WARN_DOCUMENT_SIZE_BYTES`, `engine-decisions.md` 2026-07-17), (2) cache/CDN dla odczytu treści storefrontowej — odłożone, zależy od jeszcze niezrobionego montażu renderowania z danych w `sklepikFront`, (3) `store_id` jako granica partycjonowania — już satysfakcjonujące (zapytania już dziś scope'ują po `store_id`), świadomość utrzymać przy przyszłym skalowaniu, nie wymaga nowego kodu teraz.
 
 ## References
 
