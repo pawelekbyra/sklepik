@@ -1,10 +1,19 @@
 # Zgodność fiskalna PL (VAT/KSeF/kasa fiskalna) jako główna przewaga różnicująca
 
-**Status:** Draft — ustalenia strategiczne gotowe, projekt techniczny nierozpoczęty.
+**Status:** Draft — ustalenia strategiczne i techniczne gotowe (dwie rundy research-passów), implementacja nierozpoczęta.
 **Target:** `sklepik` (backend), docelowo osobny moduł/silnik, nie doklejony hack.
 **Depends on:** brak formalnej zależności, ale determinuje priorytety reszty roadmapy.
-**Author:** właściciel + agent (sesja 2026-07-17, po dwóch research-passach nad krajobrazem konkurencyjnym)
+**Author:** właściciel + agent (sesja 2026-07-17, po czterech research-passach: krajobraz konkurencyjny, luki Shopify, fundament Spree/Rails, wymogi techniczne KSeF)
 **Last updated:** 2026-07-17
+
+## ⚠️ PILNE: terminy KSeF już minęły
+
+Dziś jest **17 lipca 2026**. Harmonogram obowiązkowego KSeF (ustawa z 27.08.2025, terminy prawnie ostateczne):
+- **1 lutego 2026** — obowiązek dla dużych podatników (sprzedaż brutto 2025 > 200 mln zł) — **już minęło**.
+- **1 kwietnia 2026** — obowiązek dla pozostałych przedsiębiorców — **już minęło**.
+- 1 stycznia 2027 — najmniejsi podatnicy (obrót ≤10 000 zł/mies.) — jedyny termin jeszcze przed nami.
+
+**To nie jest planowanie na przyszłość — to aktywna, dziś istniejąca luka.** Każdy klient robiący sprzedaż B2B (faktura dla firmy) już dziś powinien mieć możliwość odbioru/wystawiania faktur przez KSeF. Priorytet tego planu rośnie odpowiednio.
 
 ## Summary
 
@@ -39,16 +48,31 @@ Dodatkowe potwierdzone luki Shopify istotne dla małych/średnich niezależnych 
 
 ## Design Details
 
-Nierozpoczęte technicznie. Do zaprojektowania:
-- Model danych faktury/paragonu zgodny z wymogami KSeF (struktura FA(3)/FA(2), numeracja, korekty).
-- Integracja z API KSeF (wysyłka, odbiór UPO — Urzędowe Poświadczenie Odbioru).
-- Integracja z kasą fiskalną (jaki standard — online/offline, jaki producent/protokół; do zbadania).
-- Przeliczanie VAT wg kursu NBP w PLN niezależnie od waluty zamówienia — czy to rozszerza istniejący `Spree::Nbp::EurPlnRate` (już w kodzie, patrz `stan-projektu.md`), czy wymaga nowego serwisu.
-- Czy to żyje jako rozszerzenie `spree_core`, czy jako osobny, wymienny moduł/gem — do decyzji w duchu punktu 3 Key Decisions.
+**Kluczowa decyzja architektoniczna: warstwa abstrakcji `FiscalProvider`, nie własny klient KSeF od razu.**
+
+- Interfejs `Spree::FiscalProvider` (nazwa robocza) w Rails — backend nie wie, czy faktura leci przez własny klient KSeF czy przez zewnętrzne API. Daje szybki start i późniejszą migrację na własną integrację bez przepisywania reszty systemu.
+- **Pierwsza implementacja: integracja z Fakturownią** (darmowa integracja z KSeF na dowolnym abonamencie, gotowe API, obsługa kas fiskalnych producentów Novitus/Posnet/Elzab/iPOS, obsługa HUB-u paragonowego/e-paragonów). Szybki time-to-market, zero ryzyka regulacyjnego na start. Alternatywy tej klasy: wFirma, ifirma, inFakt.
+- **B2C: wymusić przelew/BLIK jako domyślną metodę płatności.** To legalne zwolnienie z obowiązku kasy fiskalnej (3 warunki łącznie: dostawa pocztą/kurierem, zapłata w całości przez bank — **karta się nie liczy**, jasna ewidencja kto/za co zapłacił). Pozwala nie budować integracji z fizyczną kasą fiskalną na start. Jeśli platforma kiedyś doda płatność kartą online, ten temat wraca.
+- **B2B → KSeF, nie zwykła faktura PDF.** Format: struktura logiczna **FA(3)** (aktualna wersja, następczyni FA(2)), XML wg XSD publikowanego przez MF. Model danych zamówienia musi mieć od początku pola wymagane przez FA(3): NIP, dane adresowe, stawki VAT, kody GTU, jednostki miary — żeby nie przerabiać schematu bazy później.
+- **Środowiska KSeF do developmentu:** MF udostępnia 3 odrębne środowiska — testowe (TE, `ksef-test.mf.gov.pl`), demo/przedprodukcyjne (TR, `ksef-demo.mf.gov.pl`, bez skutków prawnych), produkcyjne (PRD). Podłączyć środowisko testowe do CI wcześnie, żeby oswoić się z API zanim ewentualna własna integracja stanie się priorytetem.
+- **Uwierzytelnianie KSeF** (potrzebne dopiero przy własnej integracji, nie przy starcie przez Fakturownię): podpis kwalifikowany XAdES albo token KSeF. UPO (Urzędowe Poświadczenie Odbioru) zawiera numer KSeF, timestamp, hash SHA-256 — pojawia się zwykle w ciągu kilku minut, ma znaczenie dowodowe. Tryb offline (offline24/awaryjny) wymaga wysyłki do 24h od przywrócenia łączności.
+- Przeliczanie VAT wg kursu NBP w PLN niezależnie od waluty zamówienia — rozszerza istniejący `Spree::Nbp::EurPlnRate` (już w kodzie, patrz `stan-projektu.md`), nie wymaga nowego serwisu od zera.
+- Brak oficjalnego SDK Ruby dla KSeF (gem `ksef` na RubyGems jest w wersji 0.1.0, praktycznie nieużywalny) — potwierdzone, że i tak trzeba by pisać integrację ręcznie niezależnie od wyboru frameworka backendu. To nie wpływa na wybór Rails vs alternatywy (patrz Open Questions, rozstrzygnięte).
 
 ## Migration Path
 
-Nierozpisane — to wymaga osobnej sesji projektowej, nie doklejenia do obecnej roadmapy. Pierwszy krok: dogłębny research techniczny wymagań KSeF (API, certyfikacja, terminy obowiązkowego wdrożenia) i wymagań integracji kas fiskalnych — zanim zacznie się projektować model danych.
+**Etap 1 (MVP, wysoki priorytet — terminy już minęły):**
+1. Model danych zamówienia rozszerzony o pola FA(3) (NIP, adres, VAT, GTU, jednostki miary).
+2. Rozróżnienie B2B (NIP podany → faktura, docelowo przez KSeF) vs B2C (paragon/e-paragon lub faktura na żądanie).
+3. Wymuszenie przelewu/BLIK jako domyślnej metody płatności B2C (zwolnienie z kasy fiskalnej).
+4. Interfejs `FiscalProvider` + pierwsza implementacja przez API Fakturowni (wystawianie faktury/paragonu po zmianie statusu zamówienia, pobieranie UPO).
+5. Środowisko testowe KSeF podłączone w CI.
+
+**Etap 2 (odłożone, dopiero gdy skala uzasadni koszt — setki faktur/mies.):**
+- Własna natywna integracja z surowym KSeF API (certyfikaty, XAdES, tryb offline) zamiast Fakturowni.
+- Integracja z fizycznymi kasami fiskalnymi producentów — tylko jeśli platforma zacznie obsługiwać płatność kartą online albo towary z katalogu wyłączonego ze zwolnienia.
+- Kasa wirtualna — dopiero po prawnym potwierdzeniu kwalifikowalności branży klienta (ustawowo ograniczona do gastronomii, hotelarstwa, transportu osób, myjni, niektórych paliw stałych — zwykłe rękodzieło raczej się nie kwalifikuje).
+- VAT-OSS/eksport UE dla sprzedaży wielosklepowej — osobny temat, nie blokuje MVP.
 
 ## Constraints on Current Work
 
@@ -58,10 +82,9 @@ Nierozpisane — to wymaga osobnej sesji projektowej, nie doklejenia do obecnej 
 ## Open Questions
 
 - **Rewizja `kierunek-projektu.md`:** zasada "core ma być betonem, domyślnie rozszerzamy Spree, modyfikacja tylko gdy naprawdę uzasadniona" (Key Decision 3 wyżej) częściowo koliduje z dotychczasową filozofią tamtego dokumentu. Wymaga świadomej decyzji właściciela: czy to zmiana generalnej zasady, czy wyjątek konkretnie dla modułu fiskalnego.
-- **Czy Spree/Rails to nadal najlepszy fundament** pod cel "najlepsze możliwe praktyki, gotowość do przepisywania tam gdzie nie pasuje" — w trakcie badania (research-pass 2026-07-17, wyniki do wpisania po zakończeniu).
-- Techniczne wymogi KSeF (kształt API, certyfikacja, harmonogram obowiązkowego wdrożenia) — nieobadane, priorytet na następną sesję.
-- Standard integracji kas fiskalnych (online/offline, protokół) — nieobadane.
-- Czy moduł fiskalny powinien być wymienny/pluginowy (na wypadek ekspansji poza Polskę) czy hardkodowany pod PL na start — nierozstrzygnięte, nie blokuje pierwszego kroku.
+- **✅ Rozstrzygnięte (2026-07-17): zostać przy Spree/Rails, nie migrować fundamentu.** Research-pass potwierdził: (a) wybór frameworka backendu jest **neutralny** dla integracji KSeF/kasy fiskalnej — to i tak custom REST client niezależnie od języka (brak dojrzałych bibliotek Ruby *i* Node); (b) migracja na Medusa.js (najbliższa architektonicznie alternatywa, spójna językowo z resztą stacku TS) kosztowałaby miesiące przy projekcie już produkcyjnym, z klientami — koszt przewyższa korzyść na tym etapie; (c) Spree jako "modularny monolit" (Rails Engines + dekoratory) jest wystarczająco dobry do punktowego przepisywania, choć gorszy architektonicznie niż Medusa 2.0/Vendure zaprojektowane od zera pod separację odpowiedzialności.
+- **⚠️ NOWE, wymaga uwagi właściciela: Spree rozdzielił się od wersji 5.0 (kwiecień 2025) na Community (BSD-3) i Enterprise, a wielosklepowość (multi-tenancy) jest funkcją Enterprise (licencja rzędu pięciocyfrowego rocznie + wdrożenie podobnej wielkości).** Nasz fork implementuje własny multi-tenant przez `store_id` niezależnie od Enterprise. To prawdopodobnie nie jest kwestia nielegalności (BSD-3 pozwala budować na kodzie, co się chce) — ale to nie jest ocena prawna, tylko architektoniczna obserwacja; nie mogę dać porady prawnej. Praktyczna implikacja: **jesteśmy sami z utrzymaniem własnego podejścia do multi-tenant** — brak wsparcia/gwarancji kompatybilności z przyszłymi aktualizacjami upstream w tym obszarze. Warto: (a) przeczytać samodzielnie/skonsultować konkretne warunki licencji Spree Enterprise i BSD-3, zwłaszcza przy skalowaniu na płacących klientów; (b) rozważyć krótką ocenę **Solidusa** (community fork Spree bez tego rozdziału, zarządzany przez Nebulab, bez opłat) jako alternatywy niższego ryzyka utrzymaniowego — nie pełną migrację, tylko świadome porównanie.
+- Czy moduł fiskalny powinien być wymienny/pluginowy (na wypadek ekspansji poza Polskę) czy hardkodowany pod PL na start — nierozstrzygnięte, nie blokuje pierwszego kroku. Interfejs `FiscalProvider` (patrz Design Details) częściowo już to rozwiązuje niezależnie od tej decyzji.
 
 ## References
 
@@ -69,3 +92,5 @@ Nierozpisane — to wymaga osobnej sesji projektowej, nie doklejenia do obecnej 
 - `docs/kierunek-projektu.md` — kanon celu projektu, wymaga rewizji pozycjonowania (patrz Open Questions).
 - Research-pass 2026-07-17 "AI-native commerce landscape" — potwierdza, że konkurowanie globalnie z Shopify nie ma sensu strategicznego (checkout AI już przegrał na rynku, fosy dystrybucji/zaufania/regulacji nie do dogonienia).
 - Research-pass 2026-07-17 "Structural gaps incumbents leave open" — źródło ustaleń VAT/KSeF wyżej.
+- Research-pass 2026-07-17 "Validate Spree/Rails as best-practice foundation" — [spreecommerce.org pricing](https://spreecommerce.org/what-is-the-price-for-the-spree-enterprise-edition/), porównanie do Medusa.js/Solidus/Saleor/Vendure.
+- Research-pass 2026-07-17 "Technical requirements for KSeF and fiscal integration" — [gov.pl/finanse harmonogram](https://www.gov.pl/web/finanse/obowiazkowy-ksef-odroczony-do-1-lutego-2026-r), [dokumentacja API KSeF 2.0/FA(3)](https://www.gov.pl/web/finanse/publikacja-dokumentacji-api-ksef-20-oraz-struktury-logicznej-fa3), [fakturownia.pl/integracja-z-ksef](https://fakturownia.pl/integracja-z-ksef).
