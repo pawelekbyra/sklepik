@@ -322,7 +322,7 @@ Istniejący storefront nie wymaga nowej logiki. Próba checkoutu szkicu otrzymuj
 
 ### Status
 
-Zaimplementowane w kodzie, **nieprzetestowane wykonaniem** — w tej sesji nie było dostępnego Ruby/Bundlera/Dockera, więc RSpec nie zostało uruchomione. Zmiana jest przejrzana ręcznie, nie zweryfikowana. Wymaga uruchomienia `bundle exec rspec spec/models/spree/storefront_page_spec.rb` przed poleganiem na tym w produkcji.
+**Zweryfikowane wykonaniem 2026-07-17.** Środowisko nie miało Ruby/Docker na start tej sesji — doinstalowany natywny Ruby 3.4 na Windows (nie jest to udokumentowana ścieżka developmentu tego repo, która zakłada Docker; zadziałało po tymczasowym, niecommitowanym pominięciu `stackprof` — nie buduje się na Windows, `ITIMER_PROF` nieznany — i lokalnym dodaniu `sqlite3`, które upstream celowo wyklucza z platformy `:mingw`/`:x64_mingw`). `bundle exec rspec spec/models/spree/storefront_page_spec.rb`: 7/7 zielone. Złapało jeden realny błąd po drodze — generalizacja walidacji bloków zmieniła format komunikatu błędu (`"button link is invalid"` → `"block 0 link is invalid"`), pre-existing test tego nie odzwierciedlał; naprawione. Kontrolery/serializery Admin/Store API (`spree/api`) **nie zostały zweryfikowane** — migracje dummy-appki dla `spree/api` uderzyły w niezwiązany konflikt (`DuplicateMigrationNameError`), nie warty pogoni dla jednoliniowej, niskiego ryzyka zmiany serializera (dodanie pola `id`).
 
 ### Kontekst
 
