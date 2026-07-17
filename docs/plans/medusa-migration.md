@@ -39,7 +39,7 @@ Z research-passu 2026-07-17 ("Unbiased Spree vs Medusa best-foundation compariso
 2. **Nowe, osobne repozytorium (robocza nazwa: `sklepik-medusa` albo docelowa nazwa platformy) — nie fork na GitHubie, nie zależność npm od `@medusajs/*` z bieżącym śledzeniem upstreamu.** Kod Medusy wklejony raz jako punkt startowy (`git clone` → usunięcie `.git` → nowy, własny commit history), od tej chwili traktowany jako w pełni własny kod. Dokumentacja Medusy zastąpiona własną (`CLAUDE.md`, `docs/` wg konwencji już ustalonej w `sklepik`/`sklepikFront`/`edytor-sklepu`), nie zachowana 1:1.
 3. **Moduł fiskalny (KSeF/VAT/kasa fiskalna) budowany od razu na Medusie**, nie na Spree jako tymczasowym fundamencie — to najpilniejsza, różnicująca funkcja, więc ma sens budować ją raz, na docelowym stosie.
 4. **`sklepikFront` (Next.js) i `edytor-sklepu` (silnik edytora) zostają bez zmian architektonicznych** — Medusa wystawia REST/GraphQL podobnie jak Spree, więc warstwa frontendowa integruje się z nowym backendem przez zaktualizowany klient API, nie przez przepisanie całej aplikacji. Realny koszt: przepisanie `@spree/sdk`-podobnej warstwy klienta pod Medusę.
-5. **Kakałowy Sklepik pozostaje na Spree do czasu gotowości nowego backendu** — brak przerwy w działaniu, ale nowe funkcje biznesowe (poza modułem fiskalnym budowanym równolegle na Medusie) nie powinny być dokładane do Spree, jeśli i tak zostaną zastąpione.
+5. **✅ SKORYGOWANE (2026-07-17, ten sam dzień): Kakałowy Sklepik na Spree NIE jest chronioną produkcją — właściciel jawnie porzuca ten deployment.** Wcześniejsza wersja tego punktu ("pozostaje na Spree do czasu gotowości nowego backendu, brak przerwy w działaniu") była błędnym założeniem z mojej strony — potraktowałem to jako żywą produkcję wymagającą ostrożnego cutover. Właściciel sprostował wprost: cały dotychczasowy Spree/Kakałowy Sklepik był **eksperymentem na promptowanie**, doszliśmy do wniosku, że da się to zrobić lepiej, i świadomie odchodzimy od tego bez oglądania się na ciągłość działania. Serwer (patrz niżej) jest wolny do ponownego wykorzystania. To **drastycznie upraszcza** resztę tego planu — nie ma delikatnej migracji danych produkcyjnych do zaprojektowania, jest tylko "postaw Medusę od nowa na zwolnionym serwerze".
 
 ## Design Details
 
@@ -55,27 +55,27 @@ Do zaprojektowania w kolejnej sesji:
 
 ## Migration Path
 
-**Nierozpisane — wymaga osobnej, dedykowanej sesji projektowej**, nie doklejenia do bieżącej roadmapy. Ta migracja dotyka żywej produkcji (realny sklep, realni klienci docelowo) i zasługuje na tyle samo staranności co dzisiejsze badania — plan krok-po-kroku, nie przepisywanie na żywioł.
+**✅ Uproszczone (2026-07-17): to nie jest wrażliwa migracja żywej produkcji — to świeży start na zwolnionej infrastrukturze.** Poprzednia wersja tej sekcji zakładała ostrożny cutover chroniący ciągłość działania sklepu; to założenie było błędne (patrz Key Decision 5). Nadal warto trzymać kolejność poniżej (dobra praktyka inżynierska sama w sobie), ale presja "nie przerwać działania" znika.
 
-Zgrubny szkic kolejności do potwierdzenia w kolejnej sesji:
-1. Nowe repozytorium GitHub (nie fork) → `git clone` Medusa.js (MIT, zweryfikowane 2026-07-17: pełna dowolność użycia komercyjnego, jedyny wymóg — zachować plik `LICENSE`) → usunięcie historii/`.git`, nowy commit startowy → własny `CLAUDE.md`/`docs/` zastępujący dokumentację Medusy, wg konwencji już ustalonej w pozostałych trzech repo (protokół dokumentacji, obowiązkowa lektura, itd.).
+1. ✅ **Zrobione (2026-07-17):** nowe repozytorium GitHub `pawelekbyra/szopifaj` (nie fork) → `git clone` Medusa.js (MIT, zweryfikowane: pełna dowolność użycia komercyjnego, jedyny wymóg — zachować plik `LICENSE`) → usunięcie historii/`.git`, nowy commit startowy → własny `CLAUDE.md`/`docs/plans/vision-2026.md` zastępujący dokumentację Medusy. Pierwszy commit: `packages/` (prawdziwy kod frameworka), bez `www/`/`integration-tests/`. **Niezweryfikowane jeszcze:** czy `yarn install` przechodzi czysto na tym okrojonym wycinku.
 2. Model multi-tenant w Medusie (odpowiednik dzisiejszego `store_id`/`StoreResolution`) — fundament pod wszystko inne, budowany raz, dobrze.
 3. Moduł fiskalny (`FiscalProvider` + Fakturownia + integracja kasy fiskalnej) na nowym backendzie — najpilniejsza, różnicująca funkcja, dowód że nowy stos działa na czymś realnym.
 4. Podstawowy katalog produktów/zamówień/koszyk — odpowiednik dzisiejszego Store/Admin API.
-5. Migracja danych z produkcyjnego Spree (Kakałowy Sklepik) — eksport/import albo równoległy zapis, do zaprojektowania.
+5. ~~Migracja danych z produkcyjnego Spree~~ **Nieaktualne — nie ma czego migrować.** Spree/Kakałowy Sklepik to porzucony eksperyment, nie źródło danych do zachowania. Jeśli kiedyś przyda się demo/przykładowa treść, można ręcznie odtworzyć kilka produktów, ale to nie jest krok wymagający starannego planu eksport/import.
 6. Przełączenie `sklepikFront` na nowy backend (nowy klient API).
-7. **Cutover produkcji, wygaszenie Spree.** Serwer produkcyjny do wygaszenia/przekonfigurowania na tym etapie: Oracle Cloud VPS `141.253.103.172` (alias `141-253-103-172.nip.io`, patrz `docs/deployment-oracle.md`), klucz SSH: `ssh-key-2026-07-08.key` w katalogu „kakałowy sklepik" na pulpicie. **Nie czyścić przed tym krokiem** — to żywa produkcja Kakałowego Sklepika, musi działać nieprzerwanie do czasu gotowości Medusy do przejęcia ruchu (zgodnie z Key Decision 5).
+7. **Postawienie Medusy na zwolnionym serwerze, wygaszenie Spree.** Serwer: Oracle Cloud VPS `141.253.103.172` (alias `141-253-103-172.nip.io`, patrz `docs/deployment-oracle.md`), klucz SSH: `ssh-key-2026-07-08.key` w katalogu „kakałowy sklepik" na pulpicie. **⚠️ Realny termin: serwer jest na 3-tygodniowym trialu Oracle** (od ok. 2026-07-17) — to jedyny prawdziwy deadline w tym planie. Czyszczenie/przekonfigurowanie może nastąpić w dowolnym momencie od teraz (nie ma już produkcji do chronienia) — sensowny moment to gdy krok 2-3 (multi-tenant + moduł fiskalny) są gotowe do wdrożenia, żeby nie stawiać pustego serwera na tykającym zegarze bez niczego do postawienia.
 
 ## Constraints on Current Work
 
-- **Nie dokładać nowych funkcji biznesowych do `spree/`**, które i tak zostaną zastąpione — wyjątek: krytyczne poprawki bezpieczeństwa/stabilności produkcji Kakałowego Sklepika, które musi działać do czasu cutover.
-- Moduł fiskalny (`fiscal-compliance-poland.md`) — **budować od razu na Medusie**, nie jako tymczasowy kod w Spree do wyrzucenia. To pierwszy realny kawałek nowego backendu.
+- **Nie dokładać żadnych nowych funkcji do `spree/` w repo `sklepik`.** To porzucony eksperyment, nie ma już wyjątku dla "krytycznych poprawek produkcyjnych" — nie ma produkcji do chronienia.
+- Moduł fiskalny (`fiscal-compliance-poland.md`) — **budować od razu na Medusie/`szopifaj`**, nie jako tymczasowy kod w Spree do wyrzucenia. To pierwszy realny kawałek nowego backendu.
 - `docs/kierunek-projektu.md` (kanon celu projektu) wymaga aktualizacji sekcji "Stack technologiczny" — dziś wciąż opisuje Rails/Spree jako fundament. Nie zmieniono w tej sesji, żeby nie robić tego pospiesznie przy okazji — wymaga świadomej rewizji w kolejnej sesji projektowej razem z resztą planu migracji.
+- **Termin trialu Oracle (~3 tygodnie od 2026-07-17)** — jedyny prawdziwy deadline w tym planie. Nie blokuje bieżącej pracy nad `szopifaj`, ale warto mieć go z tyłu głowy przy planowaniu tempa kroków 2-3.
 
 ## Open Questions
 
-- **✅ Rozstrzygnięte (2026-07-17): nowe, osobne repozytorium**, nie katalog w `sklepik`, nie fork na GitHubie. Nazwa repo wciąż nierozstrzygnięta (robocza: `sklepik-medusa`).
-- Strategia migracji danych produkcyjnych — nierozstrzygnięte, wymaga starannego planu (żywy sklep, realne zamówienia).
+- **✅ Rozstrzygnięte (2026-07-17): nowe, osobne repozytorium — `pawelekbyra/szopifaj`** (publiczne), nie katalog w `sklepik`, nie fork na GitHubie. Pierwszy commit zrobiony.
+- ~~Strategia migracji danych produkcyjnych~~ **✅ Nieaktualne (2026-07-17): nie ma produkcji do migrowania**, Spree/Kakałowy Sklepik jawnie porzucony przez właściciela.
 - Czy multi-tenant w Medusie budujemy od zera analogicznie do `store_id`, czy jest w Medusie jakiś wzorzec/przykład warty naśladowania — nieobadane w tej sesji, do zbadania przed startem implementacji.
 - Los dzisiejszej pracy nad `Spree::StorefrontPage`/`SklepikPageRepository`/publikacją pakietów `@pawelekbyra/*` — koncepcje (JSONB blob, draft/publish, warstwa `PageRepository`) prawdopodobnie przenoszą się, ale wymagają przeprojektowania pod nowy backend. Nie marnowanie pracy, ale nie 1:1 kopiowanie kodu Ruby.
 - Harmonogram: czy moduł fiskalny na Medusie budujemy równolegle z resztą migracji, czy migracja jest wstrzymana do czasu, aż moduł fiskalny będzie gotowy (biorąc pod uwagę, że terminy KSeF już minęły — presja czasowa realna).
