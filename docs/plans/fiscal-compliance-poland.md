@@ -1,9 +1,9 @@
 # Zgodność fiskalna PL (VAT/KSeF/kasa fiskalna) jako główna przewaga różnicująca
 
-**Status:** Draft — ustalenia strategiczne i techniczne gotowe (dwie rundy research-passów), implementacja nierozpoczęta.
-**Target:** `sklepik` (backend), docelowo osobny moduł/silnik, nie doklejony hack.
-**Depends on:** brak formalnej zależności, ale determinuje priorytety reszty roadmapy.
-**Author:** właściciel + agent (sesja 2026-07-17, po czterech research-passach: krajobraz konkurencyjny, luki Shopify, fundament Spree/Rails, wymogi techniczne KSeF)
+**Status:** Draft — ustalenia strategiczne i techniczne gotowe (trzy rundy research-passów), implementacja nierozpoczęta.
+**Target:** ZMIENIONE (2026-07-17) — nowy backend Medusa.js, nie `sklepik`/Spree. Patrz [`medusa-migration.md`](medusa-migration.md).
+**Depends on:** [`medusa-migration.md`](medusa-migration.md) — moduł fiskalny budowany na nowym stosie, nie na Spree jako tymczasowym fundamencie.
+**Author:** właściciel + agent (sesja 2026-07-17, po sześciu research-passach: krajobraz konkurencyjny, luki Shopify, fundament Spree/Rails, wymogi techniczne KSeF, kasa fiskalna przy pełnym mixie płatności, obiektywne porównanie Spree vs Medusa)
 **Last updated:** 2026-07-17
 
 ## ⚠️ PILNE: terminy KSeF już minęły
@@ -52,7 +52,8 @@ Dodatkowe potwierdzone luki Shopify istotne dla małych/średnich niezależnych 
 
 - Interfejs `Spree::FiscalProvider` (nazwa robocza) w Rails — backend nie wie, czy faktura leci przez własny klient KSeF czy przez zewnętrzne API. Daje szybki start i późniejszą migrację na własną integrację bez przepisywania reszty systemu.
 - **Pierwsza implementacja: integracja z Fakturownią** (darmowa integracja z KSeF na dowolnym abonamencie, gotowe API, obsługa kas fiskalnych producentów Novitus/Posnet/Elzab/iPOS, obsługa HUB-u paragonowego/e-paragonów). Szybki time-to-market, zero ryzyka regulacyjnego na start. Alternatywy tej klasy: wFirma, ifirma, inFakt.
-- **B2C: wymusić przelew/BLIK jako domyślną metodę płatności.** To legalne zwolnienie z obowiązku kasy fiskalnej (3 warunki łącznie: dostawa pocztą/kurierem, zapłata w całości przez bank — **karta się nie liczy**, jasna ewidencja kto/za co zapłacił). Pozwala nie budować integracji z fizyczną kasą fiskalną na start. Jeśli platforma kiedyś doda płatność kartą online, ten temat wraca.
+- **❌ ODRZUCONE (2026-07-17): ograniczenie płatności B2C do przelewu/BLIK.** Właściciel wprost odrzucił to jako złe dla konwersji — platforma ma obsługiwać pełen zakres metod płatności (karta, Przelewy24, PayU, Stripe) od początku. **Potwierdzone badawczo: przy jakiejkolwiek płatności innej niż bezpośredni przelew na konto, fiskalizacja jest obowiązkowa od pierwszej transakcji** (karta/bramka płatnicza przerywa bezpośredni związek wpłaty z transakcją wymagany przez przepis o zwolnieniu — nawet BLIK rozliczany jako transakcja kartowa się nie kwalifikuje). Kasa wirtualna **prawnie odpada** dla zwykłej sprzedaży detalicznej (zamknięta lista PKWiU: transport, gastronomia, hotelarstwo, myjnie, węgiel — nie handel/rękodzieło).
+- **✅ Architektura kasy fiskalnej (bez kompromisów, potwierdzona jako wzorzec używany przez IdoSell/Shoper/duże platformy PL):** fizyczna drukarka fiskalna online z natywnym REST API — **Novitus NoviAPI** jako pierwszy wybór (~2800-3000 zł netto/urządzenie, protokół REST zaprojektowany pod integracje e-commerce), Posnet Thermal HD Online jako porównanie/backup. Podłączona do dedykowanego, zawsze dostępnego mini-serwera z publicznym dostępem (musi łączyć się z Centralnym Repozytorium Kas MF). Własny mikroserwis „fiscal-service" nasłuchuje webhooków bramki płatności (Stripe/P24/PayU) i po potwierdzeniu wpłaty wystawia paragon przez NoviAPI. **E-paragon za zgodą klienta w checkout** (opt-in + e-mail, zgodnie z art. 111 ustawy o VAT i portalem e-paragony na podatki.gov.pl) zamiast/obok papierowego; bez zgody — paragon drukowany lokalnie i pakowany fizycznie do przesyłki. Mikroserwis potrzebuje kolejki z retry na wypadek offline drukarki i alarmowania — brak fiskalizacji przy przyjętej płatności to ryzyko sankcji karnoskarbowych.
 - **B2B → KSeF, nie zwykła faktura PDF.** Format: struktura logiczna **FA(3)** (aktualna wersja, następczyni FA(2)), XML wg XSD publikowanego przez MF. Model danych zamówienia musi mieć od początku pola wymagane przez FA(3): NIP, dane adresowe, stawki VAT, kody GTU, jednostki miary — żeby nie przerabiać schematu bazy później.
 - **Środowiska KSeF do developmentu:** MF udostępnia 3 odrębne środowiska — testowe (TE, `ksef-test.mf.gov.pl`), demo/przedprodukcyjne (TR, `ksef-demo.mf.gov.pl`, bez skutków prawnych), produkcyjne (PRD). Podłączyć środowisko testowe do CI wcześnie, żeby oswoić się z API zanim ewentualna własna integracja stanie się priorytetem.
 - **Uwierzytelnianie KSeF** (potrzebne dopiero przy własnej integracji, nie przy starcie przez Fakturownię): podpis kwalifikowany XAdES albo token KSeF. UPO (Urzędowe Poświadczenie Odbioru) zawiera numer KSeF, timestamp, hash SHA-256 — pojawia się zwykle w ciągu kilku minut, ma znaczenie dowodowe. Tryb offline (offline24/awaryjny) wymaga wysyłki do 24h od przywrócenia łączności.
@@ -61,17 +62,16 @@ Dodatkowe potwierdzone luki Shopify istotne dla małych/średnich niezależnych 
 
 ## Migration Path
 
-**Etap 1 (MVP, wysoki priorytet — terminy już minęły):**
+**Etap 1 (MVP, wysoki priorytet — terminy już minęły, budowane na Medusie, patrz `medusa-migration.md`):**
 1. Model danych zamówienia rozszerzony o pola FA(3) (NIP, adres, VAT, GTU, jednostki miary).
 2. Rozróżnienie B2B (NIP podany → faktura, docelowo przez KSeF) vs B2C (paragon/e-paragon lub faktura na żądanie).
-3. Wymuszenie przelewu/BLIK jako domyślnej metody płatności B2C (zwolnienie z kasy fiskalnej).
-4. Interfejs `FiscalProvider` + pierwsza implementacja przez API Fakturowni (wystawianie faktury/paragonu po zmianie statusu zamówienia, pobieranie UPO).
-5. Środowisko testowe KSeF podłączone w CI.
+3. **Pełen zakres metod płatności B2C od startu** (karta, P24, PayU, Stripe) — bez ograniczeń.
+4. Mikroserwis „fiscal-service" + fizyczna drukarka fiskalna online (Novitus NoviAPI) — fiskalizacja każdej opłaconej transakcji, e-paragon za zgodą.
+5. Interfejs `FiscalProvider` + pierwsza implementacja przez API Fakturowni (wystawianie faktury B2B/KSeF po zmianie statusu zamówienia, pobieranie UPO).
+6. Środowisko testowe KSeF podłączone w CI.
 
 **Etap 2 (odłożone, dopiero gdy skala uzasadni koszt — setki faktur/mies.):**
 - Własna natywna integracja z surowym KSeF API (certyfikaty, XAdES, tryb offline) zamiast Fakturowni.
-- Integracja z fizycznymi kasami fiskalnymi producentów — tylko jeśli platforma zacznie obsługiwać płatność kartą online albo towary z katalogu wyłączonego ze zwolnienia.
-- Kasa wirtualna — dopiero po prawnym potwierdzeniu kwalifikowalności branży klienta (ustawowo ograniczona do gastronomii, hotelarstwa, transportu osób, myjni, niektórych paliw stałych — zwykłe rękodzieło raczej się nie kwalifikuje).
 - VAT-OSS/eksport UE dla sprzedaży wielosklepowej — osobny temat, nie blokuje MVP.
 
 ## Constraints on Current Work
@@ -81,9 +81,8 @@ Dodatkowe potwierdzone luki Shopify istotne dla małych/średnich niezależnych 
 
 ## Open Questions
 
-- **Rewizja `kierunek-projektu.md`:** zasada "core ma być betonem, domyślnie rozszerzamy Spree, modyfikacja tylko gdy naprawdę uzasadniona" (Key Decision 3 wyżej) częściowo koliduje z dotychczasową filozofią tamtego dokumentu. Wymaga świadomej decyzji właściciela: czy to zmiana generalnej zasady, czy wyjątek konkretnie dla modułu fiskalnego.
-- **✅ Rozstrzygnięte (2026-07-17): zostać przy Spree/Rails, nie migrować fundamentu.** Research-pass potwierdził: (a) wybór frameworka backendu jest **neutralny** dla integracji KSeF/kasy fiskalnej — to i tak custom REST client niezależnie od języka (brak dojrzałych bibliotek Ruby *i* Node); (b) migracja na Medusa.js (najbliższa architektonicznie alternatywa, spójna językowo z resztą stacku TS) kosztowałaby miesiące przy projekcie już produkcyjnym, z klientami — koszt przewyższa korzyść na tym etapie; (c) Spree jako "modularny monolit" (Rails Engines + dekoratory) jest wystarczająco dobry do punktowego przepisywania, choć gorszy architektonicznie niż Medusa 2.0/Vendure zaprojektowane od zera pod separację odpowiedzialności.
-- **⚠️ NOWE, wymaga uwagi właściciela: Spree rozdzielił się od wersji 5.0 (kwiecień 2025) na Community (BSD-3) i Enterprise, a wielosklepowość (multi-tenancy) jest funkcją Enterprise (licencja rzędu pięciocyfrowego rocznie + wdrożenie podobnej wielkości).** Nasz fork implementuje własny multi-tenant przez `store_id` niezależnie od Enterprise. To prawdopodobnie nie jest kwestia nielegalności (BSD-3 pozwala budować na kodzie, co się chce) — ale to nie jest ocena prawna, tylko architektoniczna obserwacja; nie mogę dać porady prawnej. Praktyczna implikacja: **jesteśmy sami z utrzymaniem własnego podejścia do multi-tenant** — brak wsparcia/gwarancji kompatybilności z przyszłymi aktualizacjami upstream w tym obszarze. Warto: (a) przeczytać samodzielnie/skonsultować konkretne warunki licencji Spree Enterprise i BSD-3, zwłaszcza przy skalowaniu na płacących klientów; (b) rozważyć krótką ocenę **Solidusa** (community fork Spree bez tego rozdziału, zarządzany przez Nebulab, bez opłat) jako alternatywy niższego ryzyka utrzymaniowego — nie pełną migrację, tylko świadome porównanie.
+- **Rewizja `kierunek-projektu.md`:** zasada "core ma być betonem, domyślnie rozszerzamy Spree" jest teraz nieaktualna w całości, nie tylko częściowo — backend przestaje być Spree. Wymaga pełnej rewizji kanonu. Patrz `medusa-migration.md`.
+- **🔄 ZMIENIONE 2026-07-17 (odwraca wcześniejszą rekomendację z tego samego dnia): pełny rewrite backendu na Medusa.js, nie pozostanie przy Spree.** Wcześniejsza rekomendacja "zostać przy Spree" była trafna dla kryterium "najszybciej dowieźć różnicującą funkcję" — ale właściciel świadomie odrzucił koszt/czas jako kryterium decyzyjne i wybrał "obiektywnie najlepszy fundament techniczny" zamiast tego. Drugi, celowo bezstronny research-pass (ignorujący sunk cost) dał w tym kryterium wynik na korzyść Medusy: czystsza architektura modułowa z rollbackiem, spójność języka z resztą stacku TS, lepsze wsparcie dla bezpiecznej pracy agentów AI. Pełne uzasadnienie i plan: [`medusa-migration.md`](medusa-migration.md). Kwestia licencji Spree Enterprise (multi-tenancy jako funkcja płatna od wersji 5.0) staje się częściowo bezprzedmiotowa przy tej decyzji, ale warto ją mieć z tyłu głowy, gdyby migracja się przeciągnęła.
 - Czy moduł fiskalny powinien być wymienny/pluginowy (na wypadek ekspansji poza Polskę) czy hardkodowany pod PL na start — nierozstrzygnięte, nie blokuje pierwszego kroku. Interfejs `FiscalProvider` (patrz Design Details) częściowo już to rozwiązuje niezależnie od tej decyzji.
 
 ## References
@@ -94,3 +93,6 @@ Dodatkowe potwierdzone luki Shopify istotne dla małych/średnich niezależnych 
 - Research-pass 2026-07-17 "Structural gaps incumbents leave open" — źródło ustaleń VAT/KSeF wyżej.
 - Research-pass 2026-07-17 "Validate Spree/Rails as best-practice foundation" — [spreecommerce.org pricing](https://spreecommerce.org/what-is-the-price-for-the-spree-enterprise-edition/), porównanie do Medusa.js/Solidus/Saleor/Vendure.
 - Research-pass 2026-07-17 "Technical requirements for KSeF and fiscal integration" — [gov.pl/finanse harmonogram](https://www.gov.pl/web/finanse/obowiazkowy-ksef-odroczony-do-1-lutego-2026-r), [dokumentacja API KSeF 2.0/FA(3)](https://www.gov.pl/web/finanse/publikacja-dokumentacji-api-ksef-20-oraz-struktury-logicznej-fa3), [fakturownia.pl/integracja-z-ksef](https://fakturownia.pl/integracja-z-ksef).
+- Research-pass 2026-07-17 "Research fiscal cash register requirements with card payments" — źródło architektury kasy fiskalnej wyżej ([sklepfiskalny.pl Novitus NoviAPI](https://sklepfiskalny.pl/Drukarka-fiskalna-NOVITUS-Bono-online), [gov.pl e-paragony](https://www.gov.pl/web/gov/ulatwienia-w-e-paragonach)).
+- Research-pass 2026-07-17 "Unbiased Spree vs Medusa best-foundation comparison" — źródło decyzji o migracji, pełne uzasadnienie w `medusa-migration.md`.
+- [`medusa-migration.md`](medusa-migration.md) — decyzja o zmianie backendu, plan migracji.
