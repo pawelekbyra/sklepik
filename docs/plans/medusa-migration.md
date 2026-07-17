@@ -12,6 +12,12 @@ Właściciel podjął decyzję: zamiast kontynuować na forku Spree Commerce (Ru
 
 **To nie jest przepisanie "na wszelki wypadek" — to świadomy wybór gorszego dziś, lepszego jutro fundamentu**, przy pełnej świadomości, że część funkcji (subskrypcje, pełne B2B, price lists) trzeba będzie zbudować od zera, których Spree miał gotowe.
 
+**Doprecyzowanie strategii (2026-07-17, ten sam dzień):** to nie ma być fork na GitHubie ani zależność npm od `@medusajs/*` z regularnym `git pull`/`npm update` z upstreamem. Właściciel chce **nowe, czyste repozytorium**: kod Medusy skopiowany raz jako punkt startowy, od tej chwili w pełni własny, bez śledzenia release'ów upstreamu, z własną dokumentacją zamiast ich. Ten sam wzorzec, który już zastosowaliśmy do Spree (fork jako punkt wyjścia, nie ograniczenie), zastosowany od początku, świadomie, zamiast wynikać z przypadku.
+
+**Zweryfikowane: licencja MIT Medusa.js w pełni na to pozwala.** Skopiowanie kodu do prywatnego repo, dowolna modyfikacja, brak synchronizacji z upstream, użycie komercyjne (sprzedaż klientom) — wszystko dozwolone bez ograniczeń. Jedyne twarde wymogi: (a) zachować plik `LICENSE` z notą copyright Medusajs gdzieś w repo (nie trzeba w każdym pliku), (b) nie używać nazwy/logo "Medusa" jako własnej marki (kwestia znaku towarowego, nie prawa autorskiego, więc do przemianowania w dokumentacji/publicznej twarzy, nie w samym kodzie).
+
+**Realny koszt tej decyzji, nazwany wprost:** Medusa to młody, szybko rozwijany projekt (commity co kilka godzin wg wcześniejszego research-passu). Ucinając relację z upstream, **przejmujemy pełną odpowiedzialność za wyszukiwanie i wgrywanie poprawek bezpieczeństwa na zawsze** — nikt nam ich nie wypchnie automatycznie. To większe zobowiązanie utrzymaniowe niż przy dojrzałym, wolniej zmieniającym się Spree. Świadomie zaakceptowane przez właściciela.
+
 ## Ustalenia badawcze — dlaczego Medusa, nie Spree
 
 Z research-passu 2026-07-17 ("Unbiased Spree vs Medusa best-foundation comparison"):
@@ -30,9 +36,10 @@ Z research-passu 2026-07-17 ("Unbiased Spree vs Medusa best-foundation compariso
 ## Key Decisions (do not deviate without discussion)
 
 1. **Nowy backend: Medusa.js (Node/TypeScript), nie fork Spree.** Zastępuje cały `spree/` katalog w repo `sklepik` docelowo.
-2. **Moduł fiskalny (KSeF/VAT/kasa fiskalna) budowany od razu na Medusie**, nie na Spree jako tymczasowym fundamencie — to najpilniejsza, różnicująca funkcja, więc ma sens budować ją raz, na docelowym stosie.
-3. **`sklepikFront` (Next.js) i `edytor-sklepu` (silnik edytora) zostają bez zmian architektonicznych** — Medusa wystawia REST/GraphQL podobnie jak Spree, więc warstwa frontendowa integruje się z nowym backendem przez zaktualizowany klient API, nie przez przepisanie całej aplikacji. Realny koszt: przepisanie `@spree/sdk`-podobnej warstwy klienta pod Medusę.
-4. **Kakałowy Sklepik pozostaje na Spree do czasu gotowości nowego backendu** — brak przerwy w działaniu, ale nowe funkcje biznesowe (poza modułem fiskalnym budowanym równolegle na Medusie) nie powinny być dokładane do Spree, jeśli i tak zostaną zastąpione.
+2. **Nowe, osobne repozytorium (robocza nazwa: `sklepik-medusa` albo docelowa nazwa platformy) — nie fork na GitHubie, nie zależność npm od `@medusajs/*` z bieżącym śledzeniem upstreamu.** Kod Medusy wklejony raz jako punkt startowy (`git clone` → usunięcie `.git` → nowy, własny commit history), od tej chwili traktowany jako w pełni własny kod. Dokumentacja Medusy zastąpiona własną (`CLAUDE.md`, `docs/` wg konwencji już ustalonej w `sklepik`/`sklepikFront`/`edytor-sklepu`), nie zachowana 1:1.
+3. **Moduł fiskalny (KSeF/VAT/kasa fiskalna) budowany od razu na Medusie**, nie na Spree jako tymczasowym fundamencie — to najpilniejsza, różnicująca funkcja, więc ma sens budować ją raz, na docelowym stosie.
+4. **`sklepikFront` (Next.js) i `edytor-sklepu` (silnik edytora) zostają bez zmian architektonicznych** — Medusa wystawia REST/GraphQL podobnie jak Spree, więc warstwa frontendowa integruje się z nowym backendem przez zaktualizowany klient API, nie przez przepisanie całej aplikacji. Realny koszt: przepisanie `@spree/sdk`-podobnej warstwy klienta pod Medusę.
+5. **Kakałowy Sklepik pozostaje na Spree do czasu gotowości nowego backendu** — brak przerwy w działaniu, ale nowe funkcje biznesowe (poza modułem fiskalnym budowanym równolegle na Medusie) nie powinny być dokładane do Spree, jeśli i tak zostaną zastąpione.
 
 ## Design Details
 
@@ -51,7 +58,7 @@ Do zaprojektowania w kolejnej sesji:
 **Nierozpisane — wymaga osobnej, dedykowanej sesji projektowej**, nie doklejenia do bieżącej roadmapy. Ta migracja dotyka żywej produkcji (realny sklep, realni klienci docelowo) i zasługuje na tyle samo staranności co dzisiejsze badania — plan krok-po-kroku, nie przepisywanie na żywioł.
 
 Zgrubny szkic kolejności do potwierdzenia w kolejnej sesji:
-1. Setup nowego projektu Medusa (struktura repo, konwencje, CI) — odpowiednik dzisiejszego `CLAUDE.md`/dokumentacji dla nowego stosu.
+1. Nowe repozytorium GitHub (nie fork) → `git clone` Medusa.js (MIT, zweryfikowane 2026-07-17: pełna dowolność użycia komercyjnego, jedyny wymóg — zachować plik `LICENSE`) → usunięcie historii/`.git`, nowy commit startowy → własny `CLAUDE.md`/`docs/` zastępujący dokumentację Medusy, wg konwencji już ustalonej w pozostałych trzech repo (protokół dokumentacji, obowiązkowa lektura, itd.).
 2. Model multi-tenant w Medusie (odpowiednik dzisiejszego `store_id`/`StoreResolution`) — fundament pod wszystko inne, budowany raz, dobrze.
 3. Moduł fiskalny (`FiscalProvider` + Fakturownia + integracja kasy fiskalnej) na nowym backendzie — najpilniejsza, różnicująca funkcja, dowód że nowy stos działa na czymś realnym.
 4. Podstawowy katalog produktów/zamówień/koszyk — odpowiednik dzisiejszego Store/Admin API.
@@ -67,7 +74,7 @@ Zgrubny szkic kolejności do potwierdzenia w kolejnej sesji:
 
 ## Open Questions
 
-- Dokładna struktura repo dla Medusy (nowy katalog w `sklepik`, czy nowe repo) — nierozstrzygnięte.
+- **✅ Rozstrzygnięte (2026-07-17): nowe, osobne repozytorium**, nie katalog w `sklepik`, nie fork na GitHubie. Nazwa repo wciąż nierozstrzygnięta (robocza: `sklepik-medusa`).
 - Strategia migracji danych produkcyjnych — nierozstrzygnięte, wymaga starannego planu (żywy sklep, realne zamówienia).
 - Czy multi-tenant w Medusie budujemy od zera analogicznie do `store_id`, czy jest w Medusie jakiś wzorzec/przykład warty naśladowania — nieobadane w tej sesji, do zbadania przed startem implementacji.
 - Los dzisiejszej pracy nad `Spree::StorefrontPage`/`SklepikPageRepository`/publikacją pakietów `@pawelekbyra/*` — koncepcje (JSONB blob, draft/publish, warstwa `PageRepository`) prawdopodobnie przenoszą się, ale wymagają przeprojektowania pod nowy backend. Nie marnowanie pracy, ale nie 1:1 kopiowanie kodu Ruby.
@@ -77,6 +84,7 @@ Zgrubny szkic kolejności do potwierdzenia w kolejnej sesji:
 
 - `docs/plans/fiscal-compliance-poland.md` — moduł fiskalny, teraz budowany na tym nowym fundamencie.
 - Research-pass 2026-07-17 "Unbiased Spree vs Medusa best-foundation comparison" — źródło ustaleń wyżej.
+- Research-pass 2026-07-17 "Verify Medusa.js license terms for vendoring" — [github.com/medusajs/medusa/blob/develop/LICENSE](https://github.com/medusajs/medusa/blob/develop/LICENSE) (MIT, zweryfikowane bezpośrednio z pliku LICENSE w repo).
 - [Medusa Architecture](https://docs.medusajs.com/learn/introduction/architecture), [Workflow Engine Module](https://docs.medusajs.com/resources/infrastructure-modules/workflow-engine), [Medusa Build with LLMs](https://docs.medusajs.com/learn/introduction/build-with-llms-ai)
 - [Spree Decorators docs](https://spreecommerce.org/docs/developer/customization/decorators) (uzasadnienie dlaczego Spree odradza własny wzorzec rozszerzania)
 - [Spree vs Medusa — openalternative.co](https://openalternative.co/compare/medusa/vs/spree-commerce)
